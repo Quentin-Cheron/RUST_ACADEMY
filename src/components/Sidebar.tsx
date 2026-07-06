@@ -3,19 +3,81 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Menu, Check } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Menu, Check, Dumbbell, FolderGit2, ChevronRight, LogIn, LogOut, UserRound } from "lucide-react";
 import { chapters } from "@/content";
 import { useProgress } from "@/lib/progress";
+import { signOut, useSession } from "@/lib/auth-client";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+function AccountFooter({ onNavigate }: { onNavigate?: () => void }) {
+  const router = useRouter();
+  const { data: session, isPending } = useSession();
+
+  if (isPending) return null;
+
+  if (!session) {
+    return (
+      <div className="border-t border-sidebar-border p-3">
+        <Link
+          href="/connexion"
+          onClick={onNavigate}
+          className="flex items-center gap-2 rounded-lg border border-sidebar-border px-3 py-2 text-sm font-medium text-sidebar-foreground/80 transition hover:bg-sidebar-accent/60 hover:text-primary"
+        >
+          <LogIn className="size-4 text-primary" />
+          Se connecter
+          <span className="ml-auto text-xs text-muted-foreground">sauvegarde ta progression</span>
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border-t border-sidebar-border p-3">
+      <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
+        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-sidebar-accent text-primary">
+          <UserRound className="size-4" />
+        </span>
+        <div className="min-w-0 flex-1 leading-tight">
+          <div className="truncate text-sm font-semibold text-sidebar-foreground">
+            {session.user.name}
+          </div>
+          <div className="truncate text-xs text-muted-foreground">{session.user.email}</div>
+        </div>
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          aria-label="Se déconnecter"
+          onClick={async () => {
+            await signOut();
+            router.refresh();
+          }}
+        >
+          <LogOut />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const { done } = useProgress();
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const pct = Math.round((done.size / chapters.length) * 100);
+
+  const toggleExpand = (slug: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(slug)) next.delete(slug);
+      else next.add(slug);
+      return next;
+    });
+  };
 
   return (
     <div className="flex h-full flex-col">
@@ -37,6 +99,36 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
           </div>
           <Progress value={pct} className="h-2" />
         </div>
+
+        <Link
+          href="/reviser"
+          onClick={onNavigate}
+          className={cn(
+            "mt-3 flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition",
+            pathname === "/reviser"
+              ? "border-primary/40 bg-sidebar-accent text-primary"
+              : "border-sidebar-border text-sidebar-foreground/80 hover:bg-sidebar-accent/60",
+          )}
+        >
+          <Dumbbell className="size-4 text-primary" />
+          Réviser
+          <span className="ml-auto text-xs text-muted-foreground">exercices mixés</span>
+        </Link>
+
+        <Link
+          href="/projets"
+          onClick={onNavigate}
+          className={cn(
+            "mt-2 flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition",
+            pathname.startsWith("/projets")
+              ? "border-primary/40 bg-sidebar-accent text-primary"
+              : "border-sidebar-border text-sidebar-foreground/80 hover:bg-sidebar-accent/60",
+          )}
+        >
+          <FolderGit2 className="size-4 text-primary" />
+          Projets
+          <span className="ml-auto text-xs text-muted-foreground">+ relecture IA</span>
+        </Link>
       </div>
 
       <ScrollArea className="min-h-0 flex-1">
@@ -45,39 +137,76 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
             const href = `/cours/${c.slug}`;
             const active = pathname === href;
             const complete = done.has(c.slug);
+            const open = active || expanded.has(c.slug);
             return (
-              <Link
-                key={c.slug}
-                href={href}
-                onClick={onNavigate}
-                className={cn(
-                  "mb-0.5 flex items-start gap-3 rounded-lg px-3 py-2.5 text-sm transition",
-                  active
-                    ? "bg-sidebar-accent text-primary"
-                    : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60",
-                )}
-              >
-                <span
+              <div key={c.slug} className="mb-0.5">
+                <div
                   className={cn(
-                    "mt-0.5 grid size-5 shrink-0 place-items-center rounded-md text-[11px] font-bold",
-                    complete
-                      ? "bg-emerald-500 text-white"
-                      : active
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground",
+                    "flex items-start gap-1 rounded-lg transition",
+                    active
+                      ? "bg-sidebar-accent text-primary"
+                      : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60",
                   )}
                 >
-                  {complete ? <Check className="size-3" /> : c.number}
-                </span>
-                <span className="leading-tight">
-                  <span className="font-medium">{c.title}</span>
-                  <span className="block text-xs text-muted-foreground">{c.minutes} min</span>
-                </span>
-              </Link>
+                  <Link
+                    href={href}
+                    onClick={onNavigate}
+                    className="flex min-w-0 flex-1 items-start gap-3 px-3 py-2.5 text-sm"
+                  >
+                    <span
+                      className={cn(
+                        "mt-0.5 grid size-5 shrink-0 place-items-center rounded-md text-[11px] font-bold",
+                        complete
+                          ? "bg-emerald-500 text-white"
+                          : active
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {complete ? <Check className="size-3" /> : c.number}
+                    </span>
+                    <span className="leading-tight">
+                      <span className="font-medium">{c.title}</span>
+                      <span className="block text-xs text-muted-foreground">{c.minutes} min</span>
+                    </span>
+                  </Link>
+                  <button
+                    type="button"
+                    aria-label={open ? "Replier les sous-chapitres" : "Déplier les sous-chapitres"}
+                    onClick={() => toggleExpand(c.slug)}
+                    className="mt-2.5 mr-2 grid size-5 shrink-0 place-items-center rounded text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                  >
+                    <ChevronRight className={cn("size-3.5 transition-transform", open && "rotate-90")} />
+                  </button>
+                </div>
+
+                {open && (
+                  <ol className="mt-0.5 mb-1 ml-[22px] border-l border-sidebar-border pl-3">
+                    {c.sections.map((s) => (
+                      <li key={s.id}>
+                        <Link
+                          href={`${href}#${s.id}`}
+                          onClick={onNavigate}
+                          className="flex items-baseline gap-1.5 rounded px-2 py-1 text-xs text-sidebar-foreground/70 transition hover:bg-sidebar-accent/60 hover:text-primary"
+                        >
+                          {s.number && (
+                            <span className="shrink-0 font-mono font-semibold text-primary/80">
+                              {s.number}
+                            </span>
+                          )}
+                          <span className="leading-snug">{s.title}</span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
             );
           })}
         </nav>
       </ScrollArea>
+
+      <AccountFooter onNavigate={onNavigate} />
     </div>
   );
 }
