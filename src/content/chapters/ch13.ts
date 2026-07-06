@@ -20,6 +20,7 @@ export const ch13: Chapter = {
   sections: [
     {
       id: "closures",
+      number: "13.1",
       title: "Les closures : des fonctions anonymes qui capturent leur environnement",
       blocks: [
         {
@@ -67,6 +68,7 @@ export const ch13: Chapter = {
     },
     {
       id: "traits-fn",
+      number: "13.1",
       title: "Fn, FnMut, FnOnce : les trois façons de capturer",
       blocks: [
         {
@@ -109,6 +111,7 @@ export const ch13: Chapter = {
     },
     {
       id: "iterateur-trait",
+      number: "13.2",
       title: "Le trait Iterator et la méthode next",
       blocks: [
         {
@@ -150,6 +153,7 @@ export const ch13: Chapter = {
     },
     {
       id: "adaptateurs",
+      number: "13.2",
       title: "Adaptateurs paresseux : map, filter, take, zip, enumerate",
       blocks: [
         {
@@ -196,6 +200,7 @@ export const ch13: Chapter = {
     },
     {
       id: "consommateurs",
+      number: "13.2",
       title: "Consommateurs : collect, sum, count, fold, any, all, find",
       blocks: [
         {
@@ -227,7 +232,39 @@ export const ch13: Chapter = {
       ],
     },
     {
+      id: "ameliorer-minigrep",
+      number: "13.3",
+      title: "Améliorer le projet d'E/S avec les itérateurs",
+      blocks: [
+        {
+          type: "paragraph",
+          text: "Retour sur minigrep (chapitre 12) : les itérateurs permettent d'éliminer les `clone()` du constructeur `Config::build` et de rendre la recherche plus déclarative. Au lieu de recevoir une tranche `&[String]` et de cloner chaque champ, le constructeur peut **consommer directement l'itérateur** `env::args()` — il prend possession des `String` au fur et à mesure.",
+        },
+        {
+          type: "code",
+          language: "rust",
+          code: "struct Config {\n    motif: String,\n    chemin: String,\n}\n\nimpl Config {\n    fn build(mut args: impl Iterator<Item = String>) -> Result<Config, &'static str> {\n        args.next(); // ignore le nom du programme\n\n        let motif = match args.next() {\n            Some(valeur) => valeur,\n            None => return Err(\"motif manquant\"),\n        };\n        let chemin = match args.next() {\n            Some(valeur) => valeur,\n            None => return Err(\"chemin manquant\"),\n        };\n\n        Ok(Config { motif, chemin })\n    }\n}",
+          caption: "Plus aucun clone() : chaque appel à next() transfère la propriété de la String.",
+        },
+        {
+          type: "paragraph",
+          text: "La fonction de recherche, elle, remplace la boucle `for` + `push` par une chaîne d'adaptateurs — le code dit **ce qu'il fait** (garder les lignes qui contiennent le motif) plutôt que **comment** le faire :",
+        },
+        {
+          type: "code",
+          language: "rust",
+          code: "pub fn rechercher<'a>(motif: &str, contenu: &'a str) -> Vec<&'a str> {\n    contenu\n        .lines()\n        .filter(|ligne| ligne.contains(motif))\n        .collect()\n}",
+        },
+        {
+          type: "callout",
+          variant: "tip",
+          text: "`Config::build(env::args())` fonctionne parce que `env::args()` renvoie un itérateur de `String` possédées. En signant `impl Iterator<Item = String>`, la fonction accepte aussi n'importe quel autre itérateur de String — pratique pour les tests, avec `vec![...].into_iter()`.",
+        },
+      ],
+    },
+    {
       id: "for-vs-iterateurs",
+      number: "13.4",
       title: "Boucle for vs itérateurs : lisibilité et zero-cost abstraction",
       blocks: [
         {

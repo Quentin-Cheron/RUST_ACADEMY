@@ -20,6 +20,7 @@ export const ch15: Chapter = {
   sections: [
     {
       id: "box",
+      number: "15.1",
       title: "Box<T> : allouer sur le tas",
       blocks: [
         {
@@ -74,6 +75,7 @@ export const ch15: Chapter = {
     },
     {
       id: "deref",
+      number: "15.2",
       title: "Le trait Deref",
       blocks: [
         {
@@ -117,6 +119,7 @@ export const ch15: Chapter = {
     },
     {
       id: "drop",
+      number: "15.3",
       title: "Le trait Drop",
       blocks: [
         {
@@ -152,6 +155,7 @@ export const ch15: Chapter = {
     },
     {
       id: "rc",
+      number: "15.4",
       title: "Rc<T> : propriété partagée",
       blocks: [
         {
@@ -187,6 +191,7 @@ export const ch15: Chapter = {
     },
     {
       id: "refcell",
+      number: "15.5",
       title: "RefCell<T> et la mutabilité intérieure",
       blocks: [
         {
@@ -233,6 +238,7 @@ export const ch15: Chapter = {
     },
     {
       id: "cycles",
+      number: "15.6",
       title: "Cycles de références et Weak<T>",
       blocks: [
         {

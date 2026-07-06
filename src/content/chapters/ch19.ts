@@ -2,231 +2,184 @@ import type { Chapter } from "../types";
 
 export const ch19: Chapter = {
   number: 19,
-  slug: "fonctionnalites-avancees",
-  title: "Fonctionnalités avancées",
-  subtitle: "unsafe, traits avancés, types avancés, closures et un survol des macros.",
+  slug: "patterns",
+  title: "Les patrons (patterns) et le filtrage",
+  subtitle: "Le langage secret pour décomposer et filtrer des valeurs, du simple `match` aux gardes et liaisons `@`.",
   description:
-    "Ce chapitre rassemble les coins les moins fréquentés de Rust : le bloc `unsafe` qui désactive certaines vérifications du compilateur, les traits avancés (types associés, surcharge d'opérateurs, syntaxe complètement qualifiée, supertraits, pattern newtype), les alias de type et le type « never » `!`, les pointeurs de fonction et les closures renvoyées depuis une fonction, et enfin un survol des macros. Tu ne t'en serviras pas tous les jours, mais savoir que ça existe — et pourquoi c'est dangereux ou puissant — te permettra de lire n'importe quel code Rust du monde réel.",
-  minutes: 55,
-  rustBookRef: "Chapitre 19 — Advanced Features",
+    "Les patterns sont partout en Rust : dans un `match`, un `if let`, une boucle `for`, ou même un simple `let`. Ce chapitre fait le tour complet de leur syntaxe — littéraux, plages, déstructuration de structs et d'enums, `_` et `..` pour ignorer, gardes `if` et liaisons `@` — pour que tu puisses extraire exactement les données dont tu as besoin, de façon lisible et vérifiée par le compilateur.",
+  minutes: 45,
+  rustBookRef: "Chapitre 19 — Patterns and Matching",
   objectives: [
-    "Identifier les 5 super-pouvoirs d'un bloc `unsafe` et savoir quand les utiliser avec parcimonie",
-    "Déréférencer un pointeur brut et appeler une fonction `unsafe`",
-    "Utiliser les types associés d'un trait et comprendre les paramètres génériques par défaut",
-    "Surcharger un opérateur (`+`, `*`) via les traits `std::ops`",
-    "Lever une ambiguïté de méthode avec la syntaxe complètement qualifiée",
-    "Définir un supertrait et appliquer le pattern newtype",
-    "Créer un alias de type avec `type` et reconnaître le type `!` (never)",
-    "Renvoyer une closure depuis une fonction avec `Box<dyn Fn>`",
-    "Distinguer une macro déclarative (`macro_rules!`) d'une macro procédurale",
+    "Lister tous les endroits où Rust attend un pattern : match, if let, while let, for, let, paramètres de fonction",
+    "Distinguer un pattern irréfutable (toujours valide dans un let) d'un pattern réfutable",
+    "Écrire des patterns avec littéraux, `|`, plages `..=` et variables liées",
+    "Déstructurer tuples, structs et enums pour extraire précisément les champs utiles",
+    "Ignorer des valeurs avec `_` et `..`, affiner un match avec une garde `if`, et capturer une valeur tout en la testant avec `@`",
   ],
   sections: [
     {
-      id: "unsafe-rust",
-      title: "unsafe Rust",
+      id: "ou-utiliser-patterns",
+      number: "19.1",
+      title: "Où utiliser les patterns",
       blocks: [
         {
           type: "paragraph",
-          text: "Rust garantit la sécurité mémoire à la compilation, mais certaines opérations ne peuvent pas être vérifiées statiquement (interagir avec le système d'exploitation, du code C, ou écrire une structure de données de bas niveau). Le mot-clé `unsafe` ouvre un bloc où **5 super-pouvoirs** deviennent disponibles, normalement interdits :",
-        },
-        {
-          type: "list",
-          ordered: true,
-          items: [
-            "Déréférencer un pointeur brut (`*const T` / `*mut T`)",
-            "Appeler une fonction ou méthode `unsafe`",
-            "Accéder à ou modifier une variable statique mutable",
-            "Implémenter un trait `unsafe`",
-            "Accéder aux champs d'une `union`",
-          ],
-        },
-        {
-          type: "callout",
-          variant: "warning",
-          title: "unsafe ne désactive pas le borrow checker",
-          text: "`unsafe` ne désactive **que** ces 5 opérations précises. Les emprunts, le typage et les autres règles restent vérifiés normalement. `unsafe` déplace simplement la responsabilité de certaines garanties du compilateur vers toi.",
-        },
-        {
-          type: "code",
-          language: "rust",
-          filename: "raw_pointers.rs",
-          code: "fn main() {\n    let mut num = 5;\n\n    let r1 = &num as *const i32;\n    let r2 = &mut num as *mut i32;\n\n    // Créer des pointeurs bruts est sûr, seul le déréférencement exige unsafe.\n    unsafe {\n        println!(\"r1 pointe vers : {}\", *r1);\n        println!(\"r2 pointe vers : {}\", *r2);\n    }\n}",
-          caption: "Créer des pointeurs bruts est sans danger ; les déréférencer exige un bloc unsafe.",
-        },
-        {
-          type: "code",
-          language: "rust",
-          filename: "unsafe_fn.rs",
-          code: "unsafe fn dangereuse() {\n    println!(\"Cette fonction promet des invariants que le compilateur ne peut pas vérifier.\");\n}\n\nfn main() {\n    unsafe {\n        dangereuse();\n    }\n}",
-        },
-        {
-          type: "usecase",
-          title: "FFI et performance : les vraies raisons d'écrire unsafe",
-          text: "En pratique, `unsafe` sert surtout à deux choses : appeler du code C via la FFI (`extern \"C\"`) — indispensable pour utiliser des bibliothèques systèmes ou embarquées — et implémenter des structures de données ou des optimisations où le compilateur ne peut pas prouver la sécurité mais toi si (buffers circulaires, structures internes de `Vec` ou `Rc`, etc.). Dans les deux cas, la règle d'or est de **garder le bloc `unsafe` minimal** et de l'encapsuler derrière une API sûre : le code appelant ne devrait jamais avoir besoin d'écrire `unsafe` lui-même.",
-        },
-        {
-          type: "code",
-          language: "rust",
-          filename: "ffi.rs",
-          code: "extern \"C\" {\n    fn abs(input: i32) -> i32;\n}\n\nfn main() {\n    unsafe {\n        println!(\"Valeur absolue de -3 selon la libc : {}\", abs(-3));\n    }\n}",
-          caption: "FFI : appeler une fonction C nécessite un bloc unsafe car Rust ne peut pas vérifier son comportement.",
-        },
-      ],
-    },
-    {
-      id: "traits-avances-associes",
-      title: "Traits avancés : types associés et surcharge d'opérateurs",
-      blocks: [
-        {
-          type: "paragraph",
-          text: "Un **type associé** lie un type à une implémentation de trait, sans paramètre générique. `Iterator` en est l'exemple canonique : chaque implémentation choisit son `Item`, mais un type ne peut implémenter `Iterator` qu'une seule fois (contrairement à un trait générique `Iterateur<T>`, implémentable plusieurs fois avec des `T` différents).",
-        },
-        {
-          type: "code",
-          language: "rust",
-          filename: "type_associe.rs",
-          code: "trait Iterateur {\n    type Item;\n\n    fn suivant(&mut self) -> Option<Self::Item>;\n}\n\nstruct Compteur {\n    valeur: u32,\n}\n\nimpl Iterateur for Compteur {\n    type Item = u32;\n\n    fn suivant(&mut self) -> Option<u32> {\n        if self.valeur < 5 {\n            self.valeur += 1;\n            Some(self.valeur)\n        } else {\n            None\n        }\n    }\n}\n\nfn main() {\n    let mut c = Compteur { valeur: 0 };\n    while let Some(n) = c.suivant() {\n        println!(\"{n}\");\n    }\n}",
-        },
-        {
-          type: "paragraph",
-          text: "Les traits comme `Add` acceptent un **paramètre générique par défaut**, écrit `trait Add<Rhs = Self>`. Cela permet d'additionner un type avec lui-même sans rien préciser, tout en gardant la possibilité d'additionner avec un autre type si besoin. C'est ce mécanisme qui permet de **surcharger les opérateurs** en implémentant les traits de `std::ops`.",
-        },
-        {
-          type: "code",
-          language: "rust",
-          filename: "operator_overload.rs",
-          code: "use std::ops::Add;\n\n#[derive(Debug, Clone, Copy, PartialEq)]\nstruct Point {\n    x: i32,\n    y: i32,\n}\n\nimpl Add for Point {\n    type Output = Point;\n\n    fn add(self, autre: Point) -> Point {\n        Point {\n            x: self.x + autre.x,\n            y: self.y + autre.y,\n        }\n    }\n}\n\nfn main() {\n    let somme = Point { x: 1, y: 0 } + Point { x: 2, y: 3 };\n    println!(\"{somme:?}\"); // Point { x: 3, y: 3 }\n}",
-          caption: "`impl Add for Point` donne un sens à l'opérateur `+` entre deux `Point`.",
-        },
-        {
-          type: "usecase",
-          title: "Surcharger les opérateurs pour l'ergonomie",
-          text: "Surcharger `+`, `*` ou `==` transforme du code verbeux (`point_ajouter(p1, p2)`) en code qui se lit comme des mathématiques (`p1 + p2`). C'est très utile pour les types représentant des nombres, vecteurs, matrices, durées ou monnaies — tant que le sens de l'opérateur reste intuitif. Surcharger `+` pour qu'il fasse une soustraction serait un piège pour quiconque lit le code.",
-        },
-      ],
-    },
-    {
-      id: "traits-avances-syntaxe",
-      title: "Traits avancés : syntaxe qualifiée, supertraits et newtype",
-      blocks: [
-        {
-          type: "paragraph",
-          text: "Quand deux traits (ou un trait et une méthode inhérente) définissent une méthode du même nom sur un même type, Rust ne sait pas laquelle appeler avec `valeur.methode()`. La **syntaxe complètement qualifiée** `<Type as Trait>::methode(valeur)` lève l'ambiguïté.",
-        },
-        {
-          type: "code",
-          language: "rust",
-          filename: "syntaxe_qualifiee.rs",
-          code: "trait Pilote {\n    fn voler(&self);\n}\n\ntrait Magicien {\n    fn voler(&self);\n}\n\nstruct Humain;\n\nimpl Pilote for Humain {\n    fn voler(&self) {\n        println!(\"Levage du gouvernail\");\n    }\n}\n\nimpl Magicien for Humain {\n    fn voler(&self) {\n        println!(\"Envolée !\");\n    }\n}\n\nfn main() {\n    let personne = Humain;\n    Pilote::voler(&personne);\n    Magicien::voler(&personne);\n    <Humain as Magicien>::voler(&personne);\n}",
-        },
-        {
-          type: "paragraph",
-          text: "Un **supertrait** exige qu'un type implémente déjà un autre trait avant de pouvoir implémenter le tien. `trait AfficheJolie: Display` signifie « tout type qui implémente `AfficheJolie` doit aussi implémenter `Display` », ce qui permet d'utiliser `{}` à l'intérieur des méthodes par défaut du trait.",
-        },
-        {
-          type: "code",
-          language: "rust",
-          filename: "supertrait.rs",
-          code: "use std::fmt;\n\ntrait AfficheJolie: fmt::Display {\n    fn affiche_jolie(&self) {\n        println!(\"*** {} ***\", self);\n    }\n}\n\nstruct Titre(String);\n\nimpl fmt::Display for Titre {\n    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {\n        write!(f, \"{}\", self.0)\n    }\n}\n\nimpl AfficheJolie for Titre {}\n\nfn main() {\n    Titre(String::from(\"Rust Academy\")).affiche_jolie();\n}",
-        },
-        {
-          type: "paragraph",
-          text: "Enfin, le **pattern newtype** enveloppe un type existant dans une tuple struct à un seul champ. Comme ni le trait ni le type ne sont définis dans notre crate d'ordinaire (règle de cohérence orpheline), le newtype permet de contourner cette règle en créant un nouveau type local sur lequel on peut implémenter n'importe quel trait externe.",
-        },
-        {
-          type: "code",
-          language: "rust",
-          filename: "newtype.rs",
-          code: "use std::fmt;\n\nstruct Enveloppe(Vec<String>);\n\nimpl fmt::Display for Enveloppe {\n    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {\n        write!(f, \"[{}]\", self.0.join(\", \"))\n    }\n}\n\nfn main() {\n    let e = Enveloppe(vec![String::from(\"un\"), String::from(\"deux\")]);\n    println!(\"{e}\"); // [un, deux]\n}",
-          caption: "`Enveloppe` est locale à notre crate : on peut donc lui implémenter `Display`, même si `Vec<String>` ne l'implémente pas directement.",
-        },
-      ],
-    },
-    {
-      id: "types-avances",
-      title: "Types avancés : alias, never type et DST",
-      blocks: [
-        {
-          type: "paragraph",
-          text: "Un **alias de type**, créé avec `type`, donne un second nom à un type existant. Il ne crée pas de nouveau type (contrairement au newtype) : c'est purement pour la lisibilité et pour raccourcir des signatures répétitives.",
-        },
-        {
-          type: "code",
-          language: "rust",
-          filename: "alias.rs",
-          code: "type Kilometres = i32;\n\ntype ResultatIO<T> = std::result::Result<T, std::io::Error>;\n\nfn distance_paris_lyon() -> Kilometres {\n    465\n}\n\nfn main() {\n    let d: Kilometres = distance_paris_lyon();\n    println!(\"{d} km\");\n}",
-        },
-        {
-          type: "paragraph",
-          text: "Le type `!`, appelé **never type**, représente l'absence totale de valeur : c'est le type de retour des fonctions qui ne reviennent jamais, comme celles qui appellent `panic!` en boucle. Il est aussi ce que renvoie `continue` dans un `match`, ce qui permet à Rust d'unifier les branches d'un `match` même quand une branche ne produit aucune valeur.",
-        },
-        {
-          type: "code",
-          language: "rust",
-          filename: "never_type.rs",
-          code: "fn boucle_infinie() -> ! {\n    loop {\n        println!(\"je ne reviens jamais\");\n    }\n}\n\nfn lire_nombre(entree: &str) -> i32 {\n    match entree.parse::<i32>() {\n        Ok(n) => n,\n        Err(_) => panic!(\"entrée invalide\"), // panic! a le type !, compatible avec i32\n    }\n}\n\nfn main() {\n    println!(\"{}\", lire_nombre(\"42\"));\n}",
-        },
-        {
-          type: "callout",
-          variant: "info",
-          title: "Types de taille dynamique et Sized",
-          text: "Des types comme `str` ou `dyn Trait` ont une taille inconnue à la compilation : ce sont des types de taille dynamique (DST). On ne peut les manipuler que derrière un pointeur (`&str`, `Box<dyn Trait>`). Par défaut, Rust ajoute une contrainte implicite `T: Sized` à tout paramètre générique ; l'écrire explicitement `T: ?Sized` autorise les DST, à condition de passer le type derrière une référence.",
-        },
-      ],
-    },
-    {
-      id: "fonctions-closures-avancees",
-      title: "Fonctions et closures avancées",
-      blocks: [
-        {
-          type: "paragraph",
-          text: "Une fonction ordinaire peut être passée en argument grâce au type **pointeur de fonction** `fn` (à ne pas confondre avec les traits `Fn`, `FnMut`, `FnOnce` des closures). `fn` implémente les trois traits de closures, donc une fonction ordinaire peut toujours être passée là où une closure est attendue.",
-        },
-        {
-          type: "code",
-          language: "rust",
-          filename: "fn_pointer.rs",
-          code: "fn ajouter_un(x: i32) -> i32 {\n    x + 1\n}\n\nfn appliquer_deux_fois(f: fn(i32) -> i32, arg: i32) -> i32 {\n    f(arg) + f(arg)\n}\n\nfn main() {\n    let reponse = appliquer_deux_fois(ajouter_un, 5);\n    println!(\"{reponse}\"); // 12\n}",
-        },
-        {
-          type: "paragraph",
-          text: "Renvoyer une closure depuis une fonction pose un problème : les closures n'ont pas de taille connue à la compilation, on ne peut donc pas écrire `-> impl Fn(i32) -> i32` si le corps peut renvoyer des closures différentes selon un chemin de code. La solution la plus flexible est de renvoyer une **closure « boxée »**, `Box<dyn Fn(i32) -> i32>`, qui place la closure sur le tas derrière un pointeur de taille connue.",
-        },
-        {
-          type: "code",
-          language: "rust",
-          filename: "closure_boxee.rs",
-          code: "fn creer_addition(x: i32) -> Box<dyn Fn(i32) -> i32> {\n    Box::new(move |y| x + y)\n}\n\nfn main() {\n    let ajoute_cinq = creer_addition(5);\n    println!(\"{}\", ajoute_cinq(10)); // 15\n}",
-          caption: "`move` transfère la propriété de `x` dans la closure, qui peut ensuite vivre plus longtemps que la fonction qui l'a créée.",
-        },
-      ],
-    },
-    {
-      id: "macros",
-      title: "Survol des macros",
-      blocks: [
-        {
-          type: "paragraph",
-          text: "Une macro génère du code Rust à partir d'autre code Rust, avant la compilation proprement dite (métaprogrammation). Contrairement à une fonction, une macro peut accepter un nombre variable d'arguments (`println!(\"{} et {}\", a, b)`) et s'exécute à la compilation, pas à l'exécution. Il existe deux grandes familles.",
+          text: "Un *pattern* (patron) est une syntaxe qui décrit la forme d'une valeur : un littéral, une variable qui capture tout, une structure imbriquée dont on ne garde que certains champs... Rust compare une valeur à un pattern et, si ça correspond, en extrait les parties intéressantes. On a déjà croisé les patterns avec `match` et `if let` ; ce chapitre fait le tour complet de tous les endroits où ils apparaissent et de toute leur syntaxe.",
         },
         {
           type: "list",
           items: [
-            "**Macros déclaratives** (`macro_rules!`) : elles fonctionnent par filtrage de motifs sur le code source, un peu comme un `match` sur des tokens. C'est ce qui définit `vec!` dans la bibliothèque standard.",
-            "**Macros procédurales** : elles prennent du code Rust en entrée (un `TokenStream`), le manipulent avec du code Rust normal, et produisent un autre `TokenStream` en sortie. Elles se déclarent dans un crate séparé de type `proc-macro` et se déclinent en trois formes : macros `derive` (`#[derive(MonTrait)]`), macros attributs (`#[mon_attribut]`) et macros de type fonction (`ma_macro!(...)`, mais avec du code Rust arbitraire au lieu du filtrage par motif).",
+            "`match valeur { pattern => expr, ... }` — l'usage le plus complet, exhaustif : tous les cas doivent être couverts.",
+            "`if let pattern = valeur { ... }` — un seul cas à tester, sans exigence d'exhaustivité.",
+            "`while let pattern = valeur { ... }` — la boucle continue tant que le pattern correspond.",
+            "`for pattern in iterable { ... }` — le pattern extrait chaque élément produit par l'itérateur.",
+            "`let pattern = valeur;` — toute affectation est en réalité un pattern.",
+            "`fn f(pattern: Type) { ... }` — les paramètres de fonction sont eux aussi des patterns.",
           ],
         },
         {
           type: "code",
           language: "rust",
-          filename: "macro_declarative.rs",
-          code: "macro_rules! carre {\n    ($x:expr) => {\n        $x * $x\n    };\n}\n\nfn main() {\n    println!(\"{}\", carre!(4)); // 16\n}",
-          caption: "Une macro déclarative minimale : `$x:expr` capture n'importe quelle expression Rust.",
+          code: 'fn afficher_coordonnee(&(x, y): &(i32, i32)) {\n    println!("x = {x}, y = {y}");\n}\n\nfn main() {\n    // `for` déstructure chaque tuple produit par l\'itérateur.\n    let points = vec![(1, 2), (3, 4)];\n    for (x, y) in &points {\n        println!("point : ({x}, {y})");\n    }\n\n    // `while let` : on continue tant que `pop` renvoie `Some`.\n    let mut pile = vec![1, 2, 3];\n    while let Some(valeur) = pile.pop() {\n        println!("dépilé : {valeur}");\n    }\n\n    afficher_coordonnee(&(5, 9));\n}',
         },
         {
           type: "callout",
           variant: "tip",
-          text: "En pratique, tu écriras rarement une macro procédurale toi-même en début de parcours : retiens surtout la distinction, car tu croiseras `#[derive(Debug)]`, `#[derive(Serialize)]` (serde) ou `#[tokio::main]` dans presque tout code Rust réel — ce sont toutes des macros procédurales.",
+          text: "Même `let x = 5;` est un pattern : `x` capture toujours la valeur, quelle qu'elle soit. C'est pour ça qu'on peut écrire directement `let (a, b) = (1, 2);` : `(a, b)` est un pattern qui déstructure le tuple à l'affectation.",
+        },
+      ],
+    },
+    {
+      id: "refutable-irrefutable",
+      number: "19.2",
+      title: "Patterns réfutables et irréfutables",
+      blocks: [
+        {
+          type: "paragraph",
+          text: "Un pattern **irréfutable** correspond à n'importe quelle valeur possible : `x`, `(a, b)`, `Point { x, y }`. C'est le seul type de pattern accepté par un `let` ou un paramètre de fonction, car ces positions ne savent pas quoi faire si le pattern échoue. Un pattern **réfutable** peut au contraire échouer à correspondre, comme `Some(x)` face à une valeur qui pourrait être `None` : c'est le pattern qu'on utilise dans `if let`, `while let`, ou un bras de `match`.",
+        },
+        {
+          type: "code",
+          language: "rust",
+          code: "fn demo(valeur: Option<i32>) {\n    // Ceci ne compile PAS : `Some(x)` est réfutable, le cas `None` n'est pas couvert.\n    // let Some(x) = valeur;\n    //\n    // error[E0005]: refutable pattern in local binding\n    //     pattern `None` not covered\n}",
+        },
+        {
+          type: "code",
+          language: "rust",
+          code: 'fn decrire(valeur: Option<i32>) {\n    // Solution 1 : `match`, qui exige l\'exhaustivité.\n    match valeur {\n        Some(x) => println!("x = {x}"),\n        None => println!("rien"),\n    }\n}\n\n// Solution 2 : `let ... else`, pratique pour sortir tôt d\'une fonction.\nfn double_ou_zero(valeur: Option<i32>) -> i32 {\n    let Some(x) = valeur else {\n        return 0;\n    };\n    x * 2\n}',
+        },
+        {
+          type: "callout",
+          variant: "info",
+          title: "Pourquoi cette distinction",
+          text: "`let`, `for` et les paramètres de fonction exigent un pattern irréfutable : le programme ne pourrait rien faire d'autre si l'affectation échouait. `if let` et `while let` acceptent volontairement un pattern réfutable, car ils savent quoi faire en cas d'échec (sauter le bloc, ou arrêter la boucle).",
+        },
+      ],
+    },
+    {
+      id: "syntaxe-patterns",
+      number: "19.3",
+      title: "Littéraux, variables, alternatives et plages",
+      blocks: [
+        {
+          type: "paragraph",
+          text: "La syntaxe des patterns est riche : on peut matcher des valeurs exactes, capturer dans une variable, combiner plusieurs possibilités avec `|`, ou tester une plage entière avec `..=`.",
+        },
+        {
+          type: "code",
+          language: "rust",
+          code: 'fn nom_du_jour(n: u32) -> &\'static str {\n    match n {\n        1 => "lundi",\n        2 => "mardi",\n        3 => "mercredi",\n        4 => "jeudi",\n        5 => "vendredi",\n        6 => "samedi",\n        7 => "dimanche",\n        _ => "jour invalide",\n    }\n}',
+        },
+        {
+          type: "paragraph",
+          text: "Un bras de `match` peut aussi capturer la valeur dans une nouvelle variable, qui **masque** (shadow) toute variable de même nom déjà en portée :",
+        },
+        {
+          type: "code",
+          language: "rust",
+          code: 'fn demo_shadowing() {\n    let x = Some(5);\n    let y = 10;\n\n    match x {\n        Some(50) => println!("cinquante"),\n        Some(y) => println!("correspond, y = {y}"), // ce `y` masque la variable externe\n        _ => println!("valeur par défaut, x = {x:?}"),\n    }\n\n    println!("à l\'extérieur, y vaut toujours {y}");\n}',
+        },
+        {
+          type: "code",
+          language: "rust",
+          code: "fn est_voyelle_ou_y(c: char) -> bool {\n    match c {\n        'a' | 'e' | 'i' | 'o' | 'u' | 'y' => true,\n        _ => false,\n    }\n}",
+        },
+        {
+          type: "code",
+          language: "rust",
+          code: 'fn categorie_age(n: u32) -> &\'static str {\n    match n {\n        0..=12 => "enfant",\n        13..=17 => "adolescent",\n        18..=64 => "adulte",\n        _ => "senior",\n    }\n}\n\nfn est_minuscule(c: char) -> bool {\n    matches!(c, \'a\'..=\'z\')\n}',
+        },
+        {
+          type: "callout",
+          variant: "info",
+          text: "Les plages `..=` ne fonctionnent qu'avec des types numériques et `char`, car il faut pouvoir énumérer les valeurs intermédiaires. La macro `matches!(valeur, pattern)` est un raccourci pratique quand tu veux juste un `bool`.",
+        },
+      ],
+    },
+    {
+      id: "destructuration",
+      number: "19.3",
+      title: "Déstructurer structs, enums et tuples",
+      blocks: [
+        {
+          type: "paragraph",
+          text: "Déstructurer, c'est décomposer une valeur composée en ses parties, en une seule ligne. Ça marche pour les tuples, les structs et les enums, aussi bien dans un `let` (pattern irréfutable) que dans un `match` (pattern réfutable, utile pour les enums à plusieurs variantes).",
+        },
+        {
+          type: "code",
+          language: "rust",
+          code: 'struct Point {\n    x: i32,\n    y: i32,\n}\n\nfn demo_struct() {\n    let p = Point { x: 3, y: 7 };\n\n    // On peut nommer les champs directement...\n    let Point { x, y } = p;\n    println!("x = {x}, y = {y}");\n\n    // ...ou les renommer au passage.\n    let p2 = Point { x: 1, y: 2 };\n    let Point { x: a, y: b } = p2;\n    println!("a = {a}, b = {b}");\n}',
+        },
+        {
+          type: "code",
+          language: "rust",
+          code: "enum Forme {\n    Cercle { rayon: f64 },\n    Rectangle { largeur: f64, hauteur: f64 },\n    Triangle { base: f64, hauteur: f64 },\n}\n\nfn aire(forme: &Forme) -> f64 {\n    match forme {\n        Forme::Cercle { rayon } => std::f64::consts::PI * rayon * rayon,\n        Forme::Rectangle { largeur, hauteur } => largeur * hauteur,\n        Forme::Triangle { base, hauteur } => base * hauteur / 2.0,\n    }\n}",
+        },
+        {
+          type: "code",
+          language: "rust",
+          code: 'fn demo_tuple() {\n    let ((debut_x, debut_y), (fin_x, fin_y)) = ((0, 0), (3, 4));\n    println!("segment de ({debut_x}, {debut_y}) à ({fin_x}, {fin_y})");\n}',
+        },
+        {
+          type: "usecase",
+          title: "Extraire proprement des données de structures complexes",
+          text: "Dès qu'une réponse d'API ou une configuration s'imbrique (`Reponse { utilisateur: Utilisateur { profil: Profil { ville, .. }, .. }, .. }`), déstructurer directement dans le `match` ou le `let` évite une cascade fragile de `.champ.sous_champ.encore`. Combiné à `..` pour ignorer le reste, tu ne nommes que ce qui t'intéresse : le code documente lui-même les données qu'il utilise réellement.",
+        },
+      ],
+    },
+    {
+      id: "ignorer-gardes-liaisons",
+      number: "19.3",
+      title: "Ignorer des valeurs, gardes de match et liaisons @",
+      blocks: [
+        {
+          type: "paragraph",
+          text: "Trois outils permettent d'affiner un pattern : `_` et `..` pour ignorer ce qui ne t'intéresse pas, une garde `if` pour ajouter une condition arbitraire à un bras, et `@` pour capturer une valeur tout en la testant contre un pattern.",
+        },
+        {
+          type: "code",
+          language: "rust",
+          code: 'fn ignorer_premier(_: i32, second: i32) -> i32 {\n    second\n}\n\nstruct Configuration {\n    nom: String,\n    version: u32,\n    debug: bool,\n    port: u16,\n}\n\nfn resume_config(config: &Configuration) -> String {\n    // `..` ignore tous les champs non nommés explicitement.\n    let Configuration { nom, version, .. } = config;\n    format!("{nom} v{version}")\n}\n\nfn extremes(valeurs: &[i32]) -> Option<(i32, i32)> {\n    match valeurs {\n        [premier, .., dernier] => Some((*premier, *dernier)),\n        _ => None,\n    }\n}',
+        },
+        {
+          type: "code",
+          language: "rust",
+          code: 'fn compare_avec_limite(n: i32, limite: i32) -> &\'static str {\n    match n {\n        x if x > limite => "au-dessus de la limite",\n        x if x == limite => "exactement à la limite",\n        _ => "en dessous de la limite",\n    }\n}',
+        },
+        {
+          type: "code",
+          language: "rust",
+          code: 'enum Message {\n    Ping,\n    Id(u32),\n}\n\nfn traiter(message: Message) -> String {\n    match message {\n        Message::Id(id_valeur @ 3..=7) => format!("identifiant dans la plage réservée : {id_valeur}"),\n        Message::Id(id_valeur) => format!("identifiant : {id_valeur}"),\n        Message::Ping => "ping".to_string(),\n    }\n}',
+        },
+        {
+          type: "callout",
+          variant: "warning",
+          text: "Le compilateur ne peut pas vérifier qu'une garde `if` couvre tous les cas restants : un bras gardé n'entre jamais dans le calcul d'exhaustivité. Garde donc toujours un bras `_` (ou équivalent) après des bras gardés, même si tu es certain d'avoir tout couvert logiquement.",
+        },
+        {
+          type: "usecase",
+          title: "Des machines à états lisibles",
+          text: "Un enum riche associé à un `match` exhaustif remplace avantageusement de longues chaînes de `if`/`else if` pour représenter un état ou un protocole. Chaque variante ne porte que les données dont elle a besoin, le compilateur t'oblige à traiter tous les cas (ou à l'assumer explicitement avec `_`), et une garde `if` permet de subdiviser un cas sans multiplier les variantes. Résultat : le code qui pilote la machine à états se lit presque comme sa spécification.",
         },
       ],
     },
@@ -234,83 +187,77 @@ export const ch19: Chapter = {
   exercises: [
     {
       id: "ch19-ex1",
-      title: "Surcharger + pour Point",
+      title: "Déstructurer dans un let",
       difficulty: "facile",
       prompt:
-        "Implémente le trait `Add` de `std::ops` pour la struct `Point { x: i32, y: i32 }` afin que `p1 + p2` additionne les coordonnées composante par composante.",
+        "Écris une fonction `distance_a_origine` qui reçoit un point représenté par un tuple `(f64, f64)` et renvoie sa distance à l'origine (racine carrée de x² + y²). À l'intérieur de la fonction, déstructure le tuple dans un `let` plutôt que d'utiliser `point.0` et `point.1`.",
       hints: [
-        "`use std::ops::Add;` puis `impl Add for Point { type Output = Point; fn add(self, autre: Point) -> Point { ... } }`.",
-        "Pense à dériver `PartialEq` et `Debug` sur `Point` pour pouvoir utiliser `assert_eq!` dans les tests.",
+        "`let (x, y) = point;` fonctionne car le pattern `(x, y)` est irréfutable.",
+        "La méthode `.sqrt()` calcule la racine carrée d'un `f64`.",
       ],
-      starter:
-        "use std::ops::Add;\n\n#[derive(Debug, Clone, Copy, PartialEq)]\nstruct Point {\n    x: i32,\n    y: i32,\n}\n\n// Implémente le trait Add pour Point ici\n\nfn main() {}",
+      starter: "fn distance_a_origine(point: (f64, f64)) -> f64 {\n    todo!()\n}",
       solution:
-        "use std::ops::Add;\n\n#[derive(Debug, Clone, Copy, PartialEq)]\nstruct Point {\n    x: i32,\n    y: i32,\n}\n\nimpl Add for Point {\n    type Output = Point;\n\n    fn add(self, autre: Point) -> Point {\n        Point {\n            x: self.x + autre.x,\n            y: self.y + autre.y,\n        }\n    }\n}\n\nfn main() {}",
+        "fn distance_a_origine(point: (f64, f64)) -> f64 {\n    let (x, y) = point;\n    (x * x + y * y).sqrt()\n}",
       tests:
-        "#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn addition_de_deux_points() {\n        let p1 = Point { x: 1, y: 2 };\n        let p2 = Point { x: 3, y: 4 };\n        assert_eq!(p1 + p2, Point { x: 4, y: 6 });\n    }\n\n    #[test]\n    fn addition_avec_zero() {\n        let p = Point { x: 5, y: -3 };\n        let zero = Point { x: 0, y: 0 };\n        assert_eq!(p + zero, p);\n    }\n}",
+        "#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn origine_donne_zero() {\n        assert_eq!(distance_a_origine((0.0, 0.0)), 0.0);\n    }\n\n    #[test]\n    fn point_3_4_donne_5() {\n        let d = distance_a_origine((3.0, 4.0));\n        assert!((d - 5.0).abs() < 1e-9);\n    }\n\n    #[test]\n    fn point_negatif() {\n        let d = distance_a_origine((-6.0, 8.0));\n        assert!((d - 10.0).abs() < 1e-9);\n    }\n}",
     },
     {
       id: "ch19-ex2",
-      title: "Un alias pour valider un âge",
-      difficulty: "facile",
+      title: "Catégoriser une plage de nombres",
+      difficulty: "moyen",
       prompt:
-        "Crée un alias de type `ResultatValidation<T>` équivalent à `Result<T, String>`, puis écris `valider_age(age: i32) -> ResultatValidation<i32>` qui renvoie `Ok(age)` si `age` est compris entre 0 et 120 inclus, sinon `Err` avec un message décrivant l'erreur.",
+        "Écris une fonction `tranche_age(age: u32) -> &'static str` qui renvoie `\"bébé\"` pour 0 à 2 ans, `\"enfant\"` pour 3 à 12 ans, `\"adolescent\"` pour 13 à 17 ans, `\"adulte\"` pour 18 à 64 ans, et `\"senior\"` au-delà. Utilise un `match` avec des plages `..=`.",
       hints: [
-        "`type ResultatValidation<T> = Result<T, String>;`",
-        "`(0..=120).contains(&age)` teste l'intervalle inclusif.",
-        "`format!(\"âge invalide : {age}\")` construit le message d'erreur.",
+        "Les bras d'un `match` sont examinés dans l'ordre : découpe les plages sans qu'elles se chevauchent.",
+        "Le dernier bras `_` capture tout le reste, ici les seniors.",
       ],
-      starter:
-        "type ResultatValidation<T> = Result<T, String>;\n\nfn valider_age(age: i32) -> ResultatValidation<i32> {\n    todo!()\n}",
+      starter: "fn tranche_age(age: u32) -> &'static str {\n    todo!()\n}",
       solution:
-        "type ResultatValidation<T> = Result<T, String>;\n\nfn valider_age(age: i32) -> ResultatValidation<i32> {\n    if (0..=120).contains(&age) {\n        Ok(age)\n    } else {\n        Err(format!(\"âge invalide : {age}\"))\n    }\n}",
+        'fn tranche_age(age: u32) -> &\'static str {\n    match age {\n        0..=2 => "bébé",\n        3..=12 => "enfant",\n        13..=17 => "adolescent",\n        18..=64 => "adulte",\n        _ => "senior",\n    }\n}',
       tests:
-        "#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn accepte_age_valide() {\n        assert_eq!(valider_age(30), Ok(30));\n    }\n\n    #[test]\n    fn refuse_age_negatif() {\n        assert!(valider_age(-1).is_err());\n    }\n\n    #[test]\n    fn refuse_age_trop_grand() {\n        assert!(valider_age(200).is_err());\n    }\n}",
+        '#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn bebe_et_enfant() {\n        assert_eq!(tranche_age(0), "bébé");\n        assert_eq!(tranche_age(2), "bébé");\n        assert_eq!(tranche_age(3), "enfant");\n        assert_eq!(tranche_age(12), "enfant");\n    }\n\n    #[test]\n    fn adolescent_et_adulte() {\n        assert_eq!(tranche_age(13), "adolescent");\n        assert_eq!(tranche_age(17), "adolescent");\n        assert_eq!(tranche_age(18), "adulte");\n        assert_eq!(tranche_age(64), "adulte");\n    }\n\n    #[test]\n    fn senior() {\n        assert_eq!(tranche_age(65), "senior");\n        assert_eq!(tranche_age(120), "senior");\n    }\n}',
     },
     {
       id: "ch19-ex3",
-      title: "Une fabrique de multiplicateurs",
+      title: "Une garde if dans un match",
       difficulty: "moyen",
       prompt:
-        "Écris `creer_multiplicateur(facteur: i32) -> Box<dyn Fn(i32) -> i32>`, une fonction qui renvoie une closure multipliant son argument par `facteur`.",
+        "Écris une fonction `parite_du_signe(n: i32) -> &'static str` qui renvoie `\"zéro\"` si `n` vaut 0, sinon combine parité et signe : `\"positif pair\"`, `\"positif impair\"`, `\"négatif pair\"` ou `\"négatif impair\"`. Utilise un bras `n` capturant la valeur, affiné par plusieurs gardes `if`.",
       hints: [
-        "La closure doit capturer `facteur` par valeur : utilise `move`.",
-        "`Box::new(move |x| x * facteur)` renvoie bien un `Box<dyn Fn(i32) -> i32>`.",
+        "Un bras `n if n > 0 && n % 2 == 0 => ...` combine capture et condition.",
+        "Termine par un bras `_` (ou un dernier `n if ...`) pour rester exhaustif aux yeux du compilateur.",
       ],
-      starter:
-        "fn creer_multiplicateur(facteur: i32) -> Box<dyn Fn(i32) -> i32> {\n    todo!()\n}",
+      starter: "fn parite_du_signe(n: i32) -> &'static str {\n    todo!()\n}",
       solution:
-        "fn creer_multiplicateur(facteur: i32) -> Box<dyn Fn(i32) -> i32> {\n    Box::new(move |x| x * facteur)\n}",
+        'fn parite_du_signe(n: i32) -> &\'static str {\n    match n {\n        0 => "zéro",\n        n if n > 0 && n % 2 == 0 => "positif pair",\n        n if n > 0 => "positif impair",\n        n if n % 2 == 0 => "négatif pair",\n        _ => "négatif impair",\n    }\n}',
       tests:
-        "#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn multiplie_par_trois() {\n        let fois_trois = creer_multiplicateur(3);\n        assert_eq!(fois_trois(4), 12);\n    }\n\n    #[test]\n    fn multiplie_par_zero() {\n        let fois_zero = creer_multiplicateur(0);\n        assert_eq!(fois_zero(100), 0);\n    }\n\n    #[test]\n    fn facteur_negatif() {\n        let fois_moins_deux = creer_multiplicateur(-2);\n        assert_eq!(fois_moins_deux(5), -10);\n    }\n}",
+        '#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn cas_zero() {\n        assert_eq!(parite_du_signe(0), "zéro");\n    }\n\n    #[test]\n    fn cas_positifs() {\n        assert_eq!(parite_du_signe(4), "positif pair");\n        assert_eq!(parite_du_signe(3), "positif impair");\n    }\n\n    #[test]\n    fn cas_negatifs() {\n        assert_eq!(parite_du_signe(-4), "négatif pair");\n        assert_eq!(parite_du_signe(-3), "négatif impair");\n    }\n}',
     },
   ],
   project: {
     id: "ch19-projet",
-    title: "Vecteur2D avec opérateurs surchargés",
+    title: "Classer un point et décrire un événement",
     difficulty: "difficile",
     prompt:
-      "Construis une struct `Vecteur2D { x: f64, y: f64 }` représentant un vecteur du plan. Fournis un constructeur `nouveau(x: f64, y: f64) -> Self`, une méthode `norme(&self) -> f64` calculant la norme euclidienne (`(x² + y²).sqrt()`), puis surcharge `Add` (addition de deux vecteurs) et `Mul<f64>` (multiplication par un scalaire, vecteur à gauche). C'est l'exercice qui combine toutes les briques du chapitre : traits `std::ops`, types associés `Output`, et méthodes classiques.",
+      "Ce projet combine tout ce que tu as vu sur les patterns. Écris deux éléments.\n\n1. Une fonction `classer(point: (i32, i32)) -> &'static str` qui classe un point du plan par déstructuration et gardes : `\"origine\"` si `(0, 0)`, `\"sur l'axe X\"` si y = 0 (et x != 0), `\"sur l'axe Y\"` si x = 0 (et y != 0), sinon `\"quadrant 1\"` à `\"quadrant 4\"` selon les signes de x et y (1 : x>0,y>0 ; 2 : x<0,y>0 ; 3 : x<0,y<0 ; 4 : x>0,y<0).\n\n2. Un enum `Evenement` avec quatre variantes riches (`Connexion { utilisateur: String }`, `Deconnexion { utilisateur: String }`, `Message { de: String, contenu: String }`, `Erreur { code: u16, message: String }`) et une fonction `decrire_evenement(e: &Evenement) -> String` qui produit une phrase différente selon la variante, avec au moins une garde `if` (pour distinguer les erreurs serveur `>= 500` des erreurs client `4xx`) et une déstructuration complète des champs.",
     hints: [
-      "`use std::ops::{Add, Mul};` puis deux blocs `impl` séparés, un par opérateur.",
-      "Pour `Mul<f64>`, le type implémenté est `impl Mul<f64> for Vecteur2D`, car le scalaire (`f64`) n'est pas du même type que `Vecteur2D`.",
-      "`f64` ne dérive pas `Eq`, seulement `PartialEq` : compare les résultats avec `assert_eq!` normalement, ça fonctionne grâce à `PartialEq`.",
+      "Traite le cas `(0, 0)` en premier : sinon les patterns `(_, 0)` ou `(0, _)` l'intercepteraient dans le mauvais ordre.",
+      "En matchant `e: &Evenement`, les patterns comme `Evenement::Erreur { code, message }` fonctionnent directement grâce aux ergonomies de match : `code` et `message` sont alors des références.",
+      "Une garde comme `if *code >= 500` te permet de sous-diviser un même variant selon la valeur d'un champ.",
     ],
     starter:
-      "use std::ops::{Add, Mul};\n\n#[derive(Debug, Clone, Copy, PartialEq)]\nstruct Vecteur2D {\n    x: f64,\n    y: f64,\n}\n\nimpl Vecteur2D {\n    fn nouveau(x: f64, y: f64) -> Self {\n        Vecteur2D { x, y }\n    }\n\n    fn norme(&self) -> f64 {\n        todo!()\n    }\n}\n\n// Implémente Add pour additionner deux Vecteur2D\n\n// Implémente Mul<f64> pour multiplier un Vecteur2D par un scalaire\n\nfn main() {}",
+      "#[derive(Debug)]\nenum Evenement {\n    Connexion { utilisateur: String },\n    Deconnexion { utilisateur: String },\n    Message { de: String, contenu: String },\n    Erreur { code: u16, message: String },\n}\n\nfn classer(point: (i32, i32)) -> &'static str {\n    todo!()\n}\n\nfn decrire_evenement(e: &Evenement) -> String {\n    todo!()\n}",
     solution:
-      "use std::ops::{Add, Mul};\n\n#[derive(Debug, Clone, Copy, PartialEq)]\nstruct Vecteur2D {\n    x: f64,\n    y: f64,\n}\n\nimpl Vecteur2D {\n    fn nouveau(x: f64, y: f64) -> Self {\n        Vecteur2D { x, y }\n    }\n\n    fn norme(&self) -> f64 {\n        (self.x * self.x + self.y * self.y).sqrt()\n    }\n}\n\nimpl Add for Vecteur2D {\n    type Output = Vecteur2D;\n\n    fn add(self, autre: Vecteur2D) -> Vecteur2D {\n        Vecteur2D {\n            x: self.x + autre.x,\n            y: self.y + autre.y,\n        }\n    }\n}\n\nimpl Mul<f64> for Vecteur2D {\n    type Output = Vecteur2D;\n\n    fn mul(self, scalaire: f64) -> Vecteur2D {\n        Vecteur2D {\n            x: self.x * scalaire,\n            y: self.y * scalaire,\n        }\n    }\n}\n\nfn main() {\n    let a = Vecteur2D::nouveau(1.0, 2.0);\n    let b = Vecteur2D::nouveau(3.0, 4.0);\n    println!(\"{:?}\", a + b);\n    println!(\"{:?}\", a * 2.0);\n    println!(\"{}\", b.norme());\n}",
+      '#[derive(Debug)]\nenum Evenement {\n    Connexion { utilisateur: String },\n    Deconnexion { utilisateur: String },\n    Message { de: String, contenu: String },\n    Erreur { code: u16, message: String },\n}\n\nfn classer(point: (i32, i32)) -> &\'static str {\n    match point {\n        (0, 0) => "origine",\n        (_, 0) => "sur l\'axe X",\n        (0, _) => "sur l\'axe Y",\n        (x, y) if x > 0 && y > 0 => "quadrant 1",\n        (x, y) if x < 0 && y > 0 => "quadrant 2",\n        (x, y) if x < 0 && y < 0 => "quadrant 3",\n        _ => "quadrant 4",\n    }\n}\n\nfn decrire_evenement(e: &Evenement) -> String {\n    match e {\n        Evenement::Connexion { utilisateur } => format!("{utilisateur} s\'est connecté"),\n        Evenement::Deconnexion { utilisateur } => format!("{utilisateur} s\'est déconnecté"),\n        Evenement::Message { de, contenu } if contenu.is_empty() => {\n            format!("{de} a envoyé un message vide")\n        }\n        Evenement::Message { de, contenu } => format!("{de} dit : {contenu}"),\n        Evenement::Erreur { code, message } if *code >= 500 => {\n            format!("erreur serveur {code} : {message}")\n        }\n        Evenement::Erreur { code, message } if *code >= 400 && *code < 500 => {\n            format!("erreur client {code} : {message}")\n        }\n        Evenement::Erreur { code, message } => format!("erreur {code} : {message}"),\n    }\n}',
     tests:
-      "#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn addition_de_vecteurs() {\n        let a = Vecteur2D::nouveau(1.0, 2.0);\n        let b = Vecteur2D::nouveau(3.0, 4.0);\n        assert_eq!(a + b, Vecteur2D::nouveau(4.0, 6.0));\n    }\n\n    #[test]\n    fn multiplication_par_scalaire() {\n        let a = Vecteur2D::nouveau(1.0, 2.0);\n        assert_eq!(a * 2.0, Vecteur2D::nouveau(2.0, 4.0));\n    }\n\n    #[test]\n    fn multiplication_par_zero() {\n        let a = Vecteur2D::nouveau(5.0, -3.0);\n        assert_eq!(a * 0.0, Vecteur2D::nouveau(0.0, 0.0));\n    }\n\n    #[test]\n    fn norme_vecteur_3_4() {\n        let v = Vecteur2D::nouveau(3.0, 4.0);\n        assert_eq!(v.norme(), 5.0);\n    }\n\n    #[test]\n    fn norme_vecteur_nul() {\n        let v = Vecteur2D::nouveau(0.0, 0.0);\n        assert_eq!(v.norme(), 0.0);\n    }\n}",
+      '#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn origine_est_reconnue() {\n        assert_eq!(classer((0, 0)), "origine");\n    }\n\n    #[test]\n    fn axe_x_et_axe_y() {\n        assert_eq!(classer((5, 0)), "sur l\'axe X");\n        assert_eq!(classer((-3, 0)), "sur l\'axe X");\n        assert_eq!(classer((0, 7)), "sur l\'axe Y");\n        assert_eq!(classer((0, -2)), "sur l\'axe Y");\n    }\n\n    #[test]\n    fn les_quatre_quadrants() {\n        assert_eq!(classer((2, 3)), "quadrant 1");\n        assert_eq!(classer((-2, 3)), "quadrant 2");\n        assert_eq!(classer((-2, -3)), "quadrant 3");\n        assert_eq!(classer((2, -3)), "quadrant 4");\n    }\n\n    #[test]\n    fn connexion_et_deconnexion() {\n        let c = Evenement::Connexion { utilisateur: "Alice".to_string() };\n        assert_eq!(decrire_evenement(&c), "Alice s\'est connecté");\n\n        let d = Evenement::Deconnexion { utilisateur: "Bob".to_string() };\n        assert_eq!(decrire_evenement(&d), "Bob s\'est déconnecté");\n    }\n\n    #[test]\n    fn message_vide_et_normal() {\n        let vide = Evenement::Message { de: "Alice".to_string(), contenu: String::new() };\n        assert_eq!(decrire_evenement(&vide), "Alice a envoyé un message vide");\n\n        let normal = Evenement::Message { de: "Alice".to_string(), contenu: "salut".to_string() };\n        assert_eq!(decrire_evenement(&normal), "Alice dit : salut");\n    }\n\n    #[test]\n    fn erreurs_serveur_client_et_autres() {\n        let serveur = Evenement::Erreur { code: 503, message: "indisponible".to_string() };\n        assert_eq!(decrire_evenement(&serveur), "erreur serveur 503 : indisponible");\n\n        let client = Evenement::Erreur { code: 404, message: "introuvable".to_string() };\n        assert_eq!(decrire_evenement(&client), "erreur client 404 : introuvable");\n\n        let autre = Evenement::Erreur { code: 100, message: "info".to_string() };\n        assert_eq!(decrire_evenement(&autre), "erreur 100 : info");\n    }\n}',
   },
   keyTakeaways: [
-    "`unsafe` active 5 super-pouvoirs précis (dont déréférencer un pointeur brut et appeler une fonction unsafe) ; il ne désactive ni le typage ni les emprunts, et doit rester minimal et encapsulé.",
-    "Les types associés (`type Item;`) lient un type à une implémentation de trait sans paramètre générique explicite.",
-    "Surcharger un opérateur revient à implémenter un trait de `std::ops` (`Add`, `Mul`, ...) qui définit un `type Output`.",
-    "La syntaxe complètement qualifiée `<Type as Trait>::methode(...)` lève les ambiguïtés entre méthodes de même nom.",
-    "Un supertrait (`trait A: B`) exige que tout type implémentant `A` implémente aussi `B` ; le pattern newtype contourne la règle de cohérence orpheline en enveloppant un type externe.",
-    "`type` crée un alias (même type, juste un autre nom) ; `!` est le type des fonctions qui ne reviennent jamais.",
-    "Une closure renvoyée par une fonction doit généralement être boxée : `Box<dyn Fn(...) -> ...>`.",
-    "Les macros déclaratives (`macro_rules!`) filtrent des motifs de code ; les macros procédurales manipulent un `TokenStream` avec du Rust normal.",
+    "Un pattern décrit la forme d'une valeur ; on le retrouve dans match, if let, while let, for, let et les paramètres de fonction.",
+    "Un pattern irréfutable correspond toujours (utilisable dans un let) ; un pattern réfutable peut échouer (if let, match, let-else).",
+    "`|` combine plusieurs patterns, `..=` décrit une plage inclusive de nombres ou de caractères.",
+    "La déstructuration de structs et d'enums dans un match extrait directement les champs qui t'intéressent.",
+    "`_` ignore une valeur, `..` ignore le reste d'une struct, d'un tuple ou d'une slice.",
+    "Une garde `if` ajoute une condition arbitraire à un bras de match ; `@` capture une valeur tout en la testant contre un pattern.",
   ],
 };

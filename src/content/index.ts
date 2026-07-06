@@ -20,11 +20,14 @@ import { ch17 } from "./chapters/ch17";
 import { ch18 } from "./chapters/ch18";
 import { ch19 } from "./chapters/ch19";
 import { ch20 } from "./chapters/ch20";
+import { ch21 } from "./chapters/ch21";
+import { ch22 } from "./chapters/ch22";
 
 /** Tous les chapitres, dans l'ordre. */
 export const chapters: Chapter[] = [
   ch01, ch02, ch03, ch04, ch05, ch06, ch07, ch08, ch09, ch10,
   ch11, ch12, ch13, ch14, ch15, ch16, ch17, ch18, ch19, ch20,
+  ch21, ch22,
 ].sort((a, b) => a.number - b.number);
 
 /** Retrouve un chapitre par son slug. */

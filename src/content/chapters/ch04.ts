@@ -20,6 +20,7 @@ export const ch04: Chapter = {
   sections: [
     {
       id: "regles-ownership",
+      number: "4.1",
       title: "Les trois règles de l'ownership",
       blocks: [
         {
@@ -50,6 +51,7 @@ export const ch04: Chapter = {
     },
     {
       id: "stack-heap",
+      number: "4.1",
       title: "Pile (stack) et tas (heap)",
       blocks: [
         {
@@ -77,6 +79,7 @@ export const ch04: Chapter = {
     },
     {
       id: "move-copy",
+      number: "4.1",
       title: "Move et types Copy",
       blocks: [
         {
@@ -115,6 +118,7 @@ export const ch04: Chapter = {
     },
     {
       id: "string-vs-str",
+      number: "4.1",
       title: "String vs &str",
       blocks: [
         {
@@ -140,6 +144,7 @@ export const ch04: Chapter = {
     },
     {
       id: "fonctions-ownership",
+      number: "4.1",
       title: "Fonctions et transfert de propriété",
       blocks: [
         {
@@ -169,6 +174,7 @@ export const ch04: Chapter = {
     },
     {
       id: "references-emprunts",
+      number: "4.2",
       title: "Références et emprunt (borrowing)",
       blocks: [
         {
@@ -234,6 +240,7 @@ export const ch04: Chapter = {
     },
     {
       id: "slices",
+      number: "4.3",
       title: "Les slices",
       blocks: [
         {

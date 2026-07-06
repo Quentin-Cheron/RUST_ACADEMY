@@ -21,6 +21,7 @@ export const ch16: Chapter = {
   sections: [
     {
       id: "threads",
+      number: "16.1",
       title: "Créer des threads",
       blocks: [
         {
@@ -70,6 +71,7 @@ export const ch16: Chapter = {
     },
     {
       id: "canaux",
+      number: "16.2",
       title: "Communiquer par messages avec mpsc",
       blocks: [
         {
@@ -109,6 +111,7 @@ export const ch16: Chapter = {
     },
     {
       id: "etat-partage",
+      number: "16.3",
       title: "État partagé avec Mutex<T> et Arc<T>",
       blocks: [
         {
@@ -149,6 +152,7 @@ export const ch16: Chapter = {
     },
     {
       id: "send-sync",
+      number: "16.4",
       title: "Les traits Send et Sync",
       blocks: [
         {

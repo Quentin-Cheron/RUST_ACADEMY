@@ -21,6 +21,7 @@ export const ch12: Chapter = {
   sections: [
     {
       id: "arguments",
+      number: "12.1",
       title: "Lire les arguments de la ligne de commande",
       blocks: [
         {
@@ -47,7 +48,35 @@ export const ch12: Chapter = {
       ],
     },
     {
+      id: "lire-un-fichier",
+      number: "12.2",
+      title: "Lire un fichier",
+      blocks: [
+        {
+          type: "paragraph",
+          text: "Deuxième étape de minigrep : lire le contenu du fichier passé en argument. `std::fs::read_to_string` ouvre un fichier et renvoie son contenu complet dans une `String`, enveloppé dans un `Result` car le fichier peut ne pas exister ou être illisible.",
+        },
+        {
+          type: "code",
+          language: "rust",
+          filename: "src/main.rs",
+          code: 'use std::env;\nuse std::fs;\n\nfn main() {\n    let args: Vec<String> = env::args().collect();\n    let chemin = &args[2];\n\n    let contenu = fs::read_to_string(chemin)\n        .expect("impossible de lire le fichier");\n\n    println!("Contenu du fichier :");\n    println!("{contenu}");\n}',
+        },
+        {
+          type: "paragraph",
+          text: "À ce stade, `expect` suffit pour avancer, mais un fichier manquant est une erreur **prévisible** venue de l'extérieur : la suite du chapitre remplace ce `expect` par un vrai `Result` propagé, comme vu au chapitre 9.",
+        },
+        {
+          type: "callout",
+          variant: "info",
+          title: "Et dans le bac à sable ?",
+          text: "Le playground qui exécute les exercices n'a pas accès au système de fichiers. C'est pourquoi, dans ce chapitre, les fonctions reçoivent le texte directement en `&str` : la logique est identique, seule la source de la donnée change.",
+        },
+      ],
+    },
+    {
       id: "config",
+      number: "12.3",
       title: "Regrouper la configuration dans une struct",
       blocks: [
         {
@@ -73,6 +102,7 @@ export const ch12: Chapter = {
     },
     {
       id: "separer-logique-io",
+      number: "12.3",
       title: "Séparer la logique testable de l'I/O",
       blocks: [
         {
@@ -105,6 +135,7 @@ export const ch12: Chapter = {
     },
     {
       id: "recherche",
+      number: "12.4",
       title: "Écrire une logique de recherche pure",
       blocks: [
         {
@@ -136,6 +167,7 @@ export const ch12: Chapter = {
     },
     {
       id: "variables-environnement",
+      number: "12.5",
       title: "Configurer via une variable d'environnement",
       blocks: [
         {
@@ -163,6 +195,32 @@ export const ch12: Chapter = {
           type: "callout",
           variant: "danger",
           text: "Ne stocke jamais de secret (mot de passe, token) dans le code source. Une variable d'environnement lue avec `env::var` est le minimum acceptable ; en production, préfère un gestionnaire de secrets dédié.",
+        },
+      ],
+    },
+    {
+      id: "erreurs-sur-stderr",
+      number: "12.6",
+      title: "Écrire les erreurs sur stderr",
+      blocks: [
+        {
+          type: "paragraph",
+          text: "Un terminal offre deux flux de sortie : **stdout** pour le résultat du programme et **stderr** pour les messages d'erreur et de diagnostic. Si un programme écrit ses erreurs sur stdout, elles se retrouvent mélangées au résultat quand on redirige la sortie vers un fichier (`programme > resultat.txt`).",
+        },
+        {
+          type: "code",
+          language: "rust",
+          code: 'use std::process;\n\nfn main() {\n    let resultat: Result<(), String> = Err("fichier introuvable".to_string());\n\n    if let Err(e) = resultat {\n        eprintln!("Erreur applicative : {e}"); // part sur stderr\n        process::exit(1); // code de sortie non nul = échec\n    }\n\n    println!("résultat normal, sur stdout");\n}',
+        },
+        {
+          type: "code",
+          language: "bash",
+          code: "cargo run > sortie.txt      # stdout va dans le fichier, les erreurs restent visibles\ncargo run 2> erreurs.log    # stderr va dans le fichier, le résultat reste à l'écran",
+        },
+        {
+          type: "usecase",
+          title: "Des CLI utilisables dans des pipelines",
+          text: "Les outils Unix s'enchaînent avec `|` et `>` : `mon_outil | grep motif > resultat.txt`. Si tes messages d'erreur partent sur stdout, ils polluent la chaîne de traitement. `eprintln!` + un code de sortie non nul (`process::exit(1)`) rendent ton programme composable et scriptable — les scripts peuvent tester `$?` pour savoir s'il a réussi.",
         },
       ],
     },

@@ -19,6 +19,7 @@ export const ch09: Chapter = {
   sections: [
     {
       id: "erreurs-irrecuperables",
+      number: "9.1",
       title: "Erreurs irrécupérables : panic!",
       blocks: [
         {
@@ -57,6 +58,7 @@ export const ch09: Chapter = {
     },
     {
       id: "erreurs-recuperables",
+      number: "9.2",
       title: "Erreurs récupérables : Result<T, E>",
       blocks: [
         {
@@ -81,6 +83,7 @@ export const ch09: Chapter = {
     },
     {
       id: "gerer-un-result",
+      number: "9.2",
       title: "Gérer un Result : match et raccourcis",
       blocks: [
         {
@@ -111,6 +114,7 @@ export const ch09: Chapter = {
     },
     {
       id: "operateur-interrogation",
+      number: "9.2",
       title: "Propager les erreurs avec ?",
       blocks: [
         {
@@ -140,6 +144,7 @@ export const ch09: Chapter = {
     },
     {
       id: "types-erreurs-personnalises",
+      number: "9.2",
       title: "Définir ses propres erreurs",
       blocks: [
         {
@@ -160,6 +165,7 @@ export const ch09: Chapter = {
     },
     {
       id: "result-dans-main-et-api-robustes",
+      number: "9.2",
       title: "Result dans main et API robustes",
       blocks: [
         {
@@ -184,6 +190,40 @@ export const ch09: Chapter = {
             "Un enum d'erreur personnalisé : dès que l'appelant doit distinguer plusieurs causes d'échec.",
             "`Box<dyn Error>` : pratique dans `main` ou aux frontières d'un programme, pour agréger des erreurs de types différents.",
           ],
+        },
+      ],
+    },
+    {
+      id: "panic-ou-pas",
+      number: "9.3",
+      title: "panic! ou pas ?",
+      blocks: [
+        {
+          type: "paragraph",
+          text: "Comment choisir entre `panic!` et `Result` ? La règle générale : renvoyer un `Result` est le bon choix par défaut pour toute fonction qui peut échouer, car il laisse la décision à l'appelant. `panic!` se justifie quand continuer serait incohérent ou dangereux — autrement dit quand le programme se trouve dans un état qui ne devrait jamais arriver.",
+        },
+        {
+          type: "list",
+          items: [
+            "**Exemples, prototypes et tests** : `unwrap()`/`expect()` sont acceptables, la robustesse n'est pas l'objectif.",
+            "**Tu as plus d'informations que le compilateur** : si une valeur est garantie valide (ex. une adresse IP codée en dur), `expect(\"...\")` documente pourquoi l'échec est impossible.",
+            "**Contrat de fonction violé** : des arguments hors contrat (index hors bornes, précondition non respectée) sont un bug de l'appelant → `panic!`.",
+            "**Donnée externe (saisie, fichier, réseau)** : toujours `Result`, jamais `panic!`.",
+          ],
+        },
+        {
+          type: "paragraph",
+          text: "Plutôt que de re-valider la même règle partout, on peut **encoder la validation dans un type** : le constructeur vérifie l'invariant une seule fois, et toutes les fonctions qui reçoivent ce type peuvent lui faire confiance.",
+        },
+        {
+          type: "code",
+          language: "rust",
+          code: 'pub struct Pourcentage {\n    valeur: u8,\n}\n\nimpl Pourcentage {\n    /// Panique si `valeur` > 100 : un appel hors contrat est un bug.\n    pub fn new(valeur: u8) -> Pourcentage {\n        if valeur > 100 {\n            panic!("pourcentage invalide : {valeur} (attendu 0..=100)");\n        }\n        Pourcentage { valeur }\n    }\n\n    pub fn valeur(&self) -> u8 {\n        self.valeur\n    }\n}',
+        },
+        {
+          type: "usecase",
+          title: "Le pattern « type validé » du Rust Book",
+          text: "C'est le pattern `Guess` du jeu du plus ou moins : au lieu de vérifier `1 <= n && n <= 100` dans chaque fonction, on crée un type dont le constructeur panique sur une valeur hors bornes. Après la frontière de validation (où l'on gère la donnée externe avec un `Result`), tout le reste du code manipule des valeurs garanties valides — plus aucun `if` défensif nécessaire.",
         },
       ],
     },
@@ -235,6 +275,24 @@ export const ch09: Chapter = {
         'fn parser_f64(s: &str) -> Result<f64, String> {\n    s.trim()\n        .parse::<f64>()\n        .map_err(|_| format!("\'{s}\' n\'est pas un nombre valide"))\n}\n\nfn diviser(a: f64, b: f64) -> Result<f64, String> {\n    if b == 0.0 {\n        Err("division par zéro".to_string())\n    } else {\n        Ok(a / b)\n    }\n}\n\nfn parser_et_diviser(a: &str, b: &str) -> Result<f64, String> {\n    let x = parser_f64(a)?;\n    let y = parser_f64(b)?;\n    diviser(x, y)\n}',
       tests:
         '#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn chaine_le_succes() {\n        assert_eq!(parser_et_diviser("10", "2"), Ok(5.0));\n    }\n\n    #[test]\n    fn propage_l_erreur_de_division() {\n        assert_eq!(\n            parser_et_diviser("10", "0"),\n            Err("division par zéro".to_string())\n        );\n    }\n\n    #[test]\n    fn propage_l_erreur_de_parsing() {\n        assert!(parser_et_diviser("abc", "2").is_err());\n    }\n}',
+    },
+    {
+      id: "ch9-ex4",
+      title: "panic! ou Result ? Une note sur 20",
+      difficulty: "moyen",
+      prompt:
+        "Implémente le type `Note` (une note sur 20). `Note::new(valeur)` est réservée au code interne : elle **panique** si `valeur > 20` (contrat violé = bug de l'appelant). `Note::parse(s)` traite une **donnée externe** (saisie utilisateur) : elle renvoie `Result<Note, String>` avec un message explicite, sans jamais paniquer.",
+      hints: [
+        "Dans `new`, utilise `panic!(\"note invalide : ...\")` ou `assert!(valeur <= 20, \"...\")`.",
+        "Dans `parse`, enchaîne `s.trim().parse::<u8>()` avec `.map_err(...)`, puis vérifie la borne avant de construire la `Note`.",
+        "`parse` ne doit pas appeler `new` (qui paniquerait) : refais le `if` et renvoie `Err`.",
+      ],
+      starter:
+        "pub struct Note {\n    valeur: u8,\n}\n\nimpl Note {\n    /// Contrat : valeur <= 20, sinon panique (bug de l'appelant).\n    pub fn new(valeur: u8) -> Note {\n        todo!()\n    }\n\n    /// Donnée externe : renvoie une erreur au lieu de paniquer.\n    pub fn parse(s: &str) -> Result<Note, String> {\n        todo!()\n    }\n\n    pub fn valeur(&self) -> u8 {\n        self.valeur\n    }\n}",
+      solution:
+        'pub struct Note {\n    valeur: u8,\n}\n\nimpl Note {\n    /// Contrat : valeur <= 20, sinon panique (bug de l\'appelant).\n    pub fn new(valeur: u8) -> Note {\n        if valeur > 20 {\n            panic!("note invalide : {valeur} (attendu 0..=20)");\n        }\n        Note { valeur }\n    }\n\n    /// Donnée externe : renvoie une erreur au lieu de paniquer.\n    pub fn parse(s: &str) -> Result<Note, String> {\n        let valeur: u8 = s\n            .trim()\n            .parse()\n            .map_err(|_| format!("\'{s}\' n\'est pas un nombre"))?;\n        if valeur > 20 {\n            return Err(format!("note hors limites : {valeur} (attendu 0..=20)"));\n        }\n        Ok(Note { valeur })\n    }\n\n    pub fn valeur(&self) -> u8 {\n        self.valeur\n    }\n}',
+      tests:
+        '#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn new_accepte_une_note_valide() {\n        assert_eq!(Note::new(15).valeur(), 15);\n    }\n\n    #[test]\n    #[should_panic(expected = "note invalide")]\n    fn new_panique_hors_contrat() {\n        Note::new(21);\n    }\n\n    #[test]\n    fn parse_accepte_une_saisie_valide() {\n        assert_eq!(Note::parse(" 12 ").unwrap().valeur(), 12);\n    }\n\n    #[test]\n    fn parse_refuse_sans_paniquer() {\n        assert!(Note::parse("25").is_err());\n        assert!(Note::parse("abc").is_err());\n    }\n}',
     },
   ],
   project: {

@@ -20,6 +20,7 @@ export const ch11: Chapter = {
   sections: [
     {
       id: "anatomie",
+      number: "11.1",
       title: "Anatomie d'un test",
       blocks: [
         {
@@ -53,6 +54,7 @@ export const ch11: Chapter = {
     },
     {
       id: "assertions",
+      number: "11.1",
       title: "Les macros assert!, assert_eq! et assert_ne!",
       blocks: [
         {
@@ -96,6 +98,7 @@ export const ch11: Chapter = {
     },
     {
       id: "panics",
+      number: "11.1",
       title: "Tester qu'une fonction panique avec #[should_panic]",
       blocks: [
         {
@@ -122,6 +125,7 @@ export const ch11: Chapter = {
     },
     {
       id: "result-tests",
+      number: "11.1",
       title: "Des tests qui renvoient Result<(), E>",
       blocks: [
         {
@@ -143,6 +147,7 @@ export const ch11: Chapter = {
     },
     {
       id: "controle-execution",
+      number: "11.2",
       title: "Piloter l'exécution avec cargo test",
       blocks: [
         {
@@ -174,6 +179,7 @@ export const ch11: Chapter = {
     },
     {
       id: "unit-vs-integration",
+      number: "11.3",
       title: "Tests unitaires vs tests d'intégration",
       blocks: [
         {

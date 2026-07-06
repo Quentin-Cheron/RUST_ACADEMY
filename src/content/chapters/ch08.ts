@@ -53,6 +53,7 @@ export const ch08: Chapter = {
     },
     {
       id: "vecteurs",
+      number: "8.1",
       title: "Vec<T> : des listes dynamiques",
       blocks: [
         {
@@ -105,6 +106,7 @@ export const ch08: Chapter = {
     },
     {
       id: "chaines-de-caracteres",
+      number: "8.2",
       title: "String : du texte encodé en UTF-8",
       blocks: [
         {
@@ -149,6 +151,7 @@ export const ch08: Chapter = {
     },
     {
       id: "hashmaps",
+      number: "8.3",
       title: "HashMap<K, V> : associer des clés à des valeurs",
       blocks: [
         {

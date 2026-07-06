@@ -26,7 +26,12 @@ const langLabel: Record<string, string> = {
   text: "Texte",
 };
 
-export default function CodeBlock({ code, language = "rust", filename, caption }: Props) {
+export default function CodeBlock({
+  code,
+  language = "rust",
+  filename,
+  caption,
+}: Props) {
   const ref = useRef<HTMLElement>(null);
   const [copied, setCopied] = useState(false);
 

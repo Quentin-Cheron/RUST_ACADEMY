@@ -21,6 +21,7 @@ export const ch10: Chapter = {
   sections: [
     {
       id: "fonctions-generiques",
+      number: "10.1",
       title: "Fonctions génériques",
       blocks: [
         {
@@ -57,6 +58,7 @@ export const ch10: Chapter = {
     },
     {
       id: "structs-enums-generiques",
+      number: "10.1",
       title: "Structs, enums et méthodes génériques",
       blocks: [
         {
@@ -105,6 +107,7 @@ export const ch10: Chapter = {
     },
     {
       id: "definir-un-trait",
+      number: "10.2",
       title: "Définir un trait",
       blocks: [
         {
@@ -143,6 +146,7 @@ export const ch10: Chapter = {
     },
     {
       id: "traits-en-parametre",
+      number: "10.2",
       title: "Traits en paramètre et en retour",
       blocks: [
         {
@@ -186,6 +190,7 @@ export const ch10: Chapter = {
     },
     {
       id: "references-pendantes-lifetimes",
+      number: "10.3",
       title: "Le problème des références pendantes",
       blocks: [
         {
@@ -232,6 +237,7 @@ export const ch10: Chapter = {
     },
     {
       id: "lifetimes-structs-elision",
+      number: "10.3",
       title: "Lifetimes dans les structs et élision",
       blocks: [
         {

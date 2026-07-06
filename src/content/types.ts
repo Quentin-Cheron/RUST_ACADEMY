@@ -30,9 +30,17 @@ export interface Exercise {
   tests: string;
 }
 
+/** Un exercice de révision transversal : mélange les notions de plusieurs chapitres. */
+export interface ReviewExercise extends Exercise {
+  /** Slugs des chapitres dont les notions sont mélangées. Tous doivent être terminés pour débloquer l'exercice. */
+  chapters: string[];
+}
+
 /** Une section de chapitre : un titre et une suite de blocs de contenu. */
 export interface Section {
   id: string;
+  /** Numéro de sous-chapitre du Rust Book, ex: "3.1". */
+  number?: string;
   title: string;
   blocks: ContentBlock[];
 }

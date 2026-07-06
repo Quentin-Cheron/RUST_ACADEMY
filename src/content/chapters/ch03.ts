@@ -20,6 +20,7 @@ export const ch03: Chapter = {
   sections: [
     {
       id: "variables-mutabilite",
+      number: "3.1",
       title: "Variables et mutabilité",
       blocks: [
         {
@@ -55,6 +56,7 @@ export const ch03: Chapter = {
     },
     {
       id: "constantes-shadowing",
+      number: "3.1",
       title: "Constantes et shadowing",
       blocks: [
         {
@@ -91,6 +93,7 @@ export const ch03: Chapter = {
     },
     {
       id: "types-scalaires",
+      number: "3.2",
       title: "Types scalaires",
       blocks: [
         {
@@ -127,6 +130,7 @@ export const ch03: Chapter = {
     },
     {
       id: "types-composes",
+      number: "3.2",
       title: "Types composés : tuples et tableaux",
       blocks: [
         {
@@ -160,8 +164,9 @@ export const ch03: Chapter = {
       ],
     },
     {
-      id: "fonctions-commentaires",
-      title: "Fonctions et commentaires",
+      id: "fonctions",
+      number: "3.3",
+      title: "Fonctions",
       blocks: [
         {
           type: "paragraph",
@@ -190,6 +195,13 @@ export const ch03: Chapter = {
           language: "rust",
           code: "fn valeur_absolue(n: i32) -> i32 {\n    if n < 0 {\n        return -n; // sortie anticipée\n    }\n    n // dernière expression : valeur de retour implicite\n}",
         },
+      ],
+    },
+    {
+      id: "commentaires",
+      number: "3.4",
+      title: "Commentaires",
+      blocks: [
         {
           type: "paragraph",
           text: "Les commentaires avec `//` sont ignorés par le compilateur et servent à expliquer le « pourquoi ». Les commentaires `///` (avec trois barres) sont des **commentaires de documentation** : `cargo doc` les transforme automatiquement en documentation HTML.",
@@ -208,6 +220,7 @@ export const ch03: Chapter = {
     },
     {
       id: "controle-de-flux",
+      number: "3.5",
       title: "Contrôle de flux",
       blocks: [
         {

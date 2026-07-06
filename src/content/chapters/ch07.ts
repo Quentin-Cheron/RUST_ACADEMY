@@ -20,6 +20,7 @@ export const ch07: Chapter = {
   sections: [
     {
       id: "packages-et-crates",
+      number: "7.1",
       title: "Packages et crates",
       blocks: [
         {
@@ -59,6 +60,7 @@ export const ch07: Chapter = {
     },
     {
       id: "definir-des-modules",
+      number: "7.2",
       title: "Définir des modules avec mod",
       blocks: [
         {
@@ -89,6 +91,7 @@ export const ch07: Chapter = {
     },
     {
       id: "chemins",
+      number: "7.3",
       title: "Chemins : absolu, relatif, super",
       blocks: [
         {
@@ -119,6 +122,7 @@ export const ch07: Chapter = {
     },
     {
       id: "visibilite-pub",
+      number: "7.3",
       title: "Visibilité : le mot-clé pub",
       blocks: [
         {
@@ -152,6 +156,7 @@ export const ch07: Chapter = {
     },
     {
       id: "use-et-pub-use",
+      number: "7.4",
       title: "Le mot-clé use",
       blocks: [
         {
@@ -195,6 +200,7 @@ export const ch07: Chapter = {
     },
     {
       id: "modules-dans-des-fichiers",
+      number: "7.5",
       title: "Séparer les modules dans des fichiers",
       blocks: [
         {

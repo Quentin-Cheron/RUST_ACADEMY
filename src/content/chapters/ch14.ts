@@ -20,6 +20,7 @@ export const ch14: Chapter = {
   sections: [
     {
       id: "profils-compilation",
+      number: "14.1",
       title: "Les profils de compilation",
       blocks: [
         {
@@ -52,6 +53,7 @@ export const ch14: Chapter = {
     },
     {
       id: "documentation",
+      number: "14.2",
       title: "Documenter avec /// et //!",
       blocks: [
         {
@@ -83,6 +85,7 @@ export const ch14: Chapter = {
     },
     {
       id: "doctests",
+      number: "14.2",
       title: "Les doctests : une documentation qui ne ment jamais",
       blocks: [
         {
@@ -117,6 +120,7 @@ export const ch14: Chapter = {
     },
     {
       id: "publier-crates-io",
+      number: "14.2",
       title: "Publier une crate sur crates.io",
       blocks: [
         {
@@ -149,8 +153,9 @@ export const ch14: Chapter = {
       ],
     },
     {
-      id: "workspaces-et-outils",
-      title: "Workspaces, cargo install et commandes personnalisées",
+      id: "workspaces",
+      number: "14.3",
+      title: "Les workspaces Cargo",
       blocks: [
         {
           type: "paragraph",
@@ -173,6 +178,13 @@ export const ch14: Chapter = {
           type: "paragraph",
           text: "Dans un workspace, `cargo build` à la racine compile toutes les crates membres ; `cargo build -p conversion` ne compile qu'une crate précise. `cargo test` à la racine lance les tests de toutes les crates du workspace en une seule commande.",
         },
+      ],
+    },
+    {
+      id: "cargo-install",
+      number: "14.4",
+      title: "Installer des binaires avec cargo install",
+      blocks: [
         {
           type: "paragraph",
           text: "`cargo install` télécharge, compile et installe un **binaire** Rust publié sur crates.io directement dans `~/.cargo/bin`, ce qui le rend disponible comme n'importe quelle commande du système — c'est ainsi que sont distribués des outils comme `ripgrep` ou `cargo-edit`.",
@@ -182,6 +194,13 @@ export const ch14: Chapter = {
           language: "bash",
           code: "cargo install ripgrep       # installe le binaire `rg`\ncargo install --path .      # installe le binaire du projet courant\ncargo install --list        # liste les binaires déjà installés",
         },
+      ],
+    },
+    {
+      id: "etendre-cargo",
+      number: "14.5",
+      title: "Étendre Cargo avec des commandes personnalisées",
+      blocks: [
         {
           type: "paragraph",
           text: "Cargo lui-même est extensible : tout exécutable nommé `cargo-quelquechose` et présent dans le `PATH` devient accessible via `cargo quelquechose`. C'est ainsi que `cargo-edit` ajoute `cargo add`/`cargo rm`, ou que `cargo-watch` ajoute `cargo watch` — sans jamais modifier le cœur de Cargo.",

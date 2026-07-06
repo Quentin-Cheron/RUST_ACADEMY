@@ -19,6 +19,7 @@ export const ch06: Chapter = {
   sections: [
     {
       id: "definir-un-enum",
+      number: "6.1",
       title: "Définir une énumération",
       blocks: [
         {
@@ -57,6 +58,7 @@ export const ch06: Chapter = {
     },
     {
       id: "option",
+      number: "6.1",
       title: "Option<T> : dire adieu à null",
       blocks: [
         {
@@ -95,6 +97,7 @@ export const ch06: Chapter = {
     },
     {
       id: "match",
+      number: "6.2",
       title: "match : le pattern matching exhaustif",
       blocks: [
         {
@@ -130,6 +133,7 @@ export const ch06: Chapter = {
     },
     {
       id: "if-let",
+      number: "6.3",
       title: "if let, else et while let",
       blocks: [
         {

@@ -18,6 +18,7 @@ export const ch01: Chapter = {
   sections: [
     {
       id: "installation",
+      number: "1.1",
       title: "Installer Rust",
       blocks: [
         {
@@ -48,6 +49,7 @@ export const ch01: Chapter = {
     },
     {
       id: "hello-world",
+      number: "1.2",
       title: "Ton premier programme",
       blocks: [
         {
@@ -79,6 +81,7 @@ export const ch01: Chapter = {
     },
     {
       id: "cargo",
+      number: "1.3",
       title: "Cargo, le couteau suisse",
       blocks: [
         {

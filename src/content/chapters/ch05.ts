@@ -20,6 +20,7 @@ export const ch05: Chapter = {
   sections: [
     {
       id: "definir-une-struct",
+      number: "5.1",
       title: "Définir et instancier une struct",
       blocks: [
         {
@@ -50,6 +51,7 @@ export const ch05: Chapter = {
     },
     {
       id: "raccourcis-syntaxiques",
+      number: "5.1",
       title: "Raccourci d'initialisation et syntaxe de mise à jour",
       blocks: [
         {
@@ -79,6 +81,7 @@ export const ch05: Chapter = {
     },
     {
       id: "tuple-structs-unit-structs",
+      number: "5.1",
       title: "Tuple structs et unit structs",
       blocks: [
         {
@@ -110,6 +113,7 @@ export const ch05: Chapter = {
     },
     {
       id: "methodes",
+      number: "5.3",
       title: "Des méthodes avec les blocs impl",
       blocks: [
         {
@@ -147,6 +151,7 @@ export const ch05: Chapter = {
     },
     {
       id: "fonctions-associees",
+      number: "5.3",
       title: "Fonctions associées",
       blocks: [
         {
@@ -171,6 +176,7 @@ export const ch05: Chapter = {
     },
     {
       id: "debug-et-choix",
+      number: "5.2",
       title: "Déboguer avec Debug et bien choisir sa struct",
       blocks: [
         {
