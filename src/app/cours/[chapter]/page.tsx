@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowRight, BookOpen, Clock, Target, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, Clock, Target, Sparkles, ListTree } from "lucide-react";
 import { chapters, getChapter, getSiblings } from "@/content";
 import ContentRenderer from "@/components/ContentRenderer";
 import ExerciseCard from "@/components/ExerciseCard";
 import CompleteButton from "@/components/CompleteButton";
+import ChapterChat from "@/components/ChapterChat";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -56,12 +57,45 @@ export default async function ChapterPage({ params }: PageProps<"/cours/[chapter
         </div>
       </header>
 
+      {/* Table des matières */}
+      <nav className="rounded-xl border border-border bg-card p-5">
+        <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
+          <ListTree className="size-4 text-primary" /> Dans ce chapitre
+        </div>
+        <ol className="space-y-1 text-sm">
+          {c.sections.map((s) => (
+            <li key={s.id}>
+              <a
+                href={`#${s.id}`}
+                className="inline-flex items-baseline gap-2 text-foreground/80 transition hover:text-primary"
+              >
+                {s.number && (
+                  <span className="font-mono text-xs font-semibold text-primary">{s.number}</span>
+                )}
+                {s.title}
+              </a>
+            </li>
+          ))}
+          <li>
+            <a
+              href="#exercices"
+              className="inline-flex items-baseline gap-2 font-medium text-foreground/80 transition hover:text-primary"
+            >
+              <Sparkles className="size-3.5 self-center text-primary" /> Exercices & projet
+            </a>
+          </li>
+        </ol>
+      </nav>
+
       <Separator className="my-8" />
 
       {/* Sections de cours */}
       {c.sections.map((s) => (
         <section key={s.id} id={s.id} className="scroll-mt-20">
-          <h2 className="mt-10 mb-2 text-2xl font-bold tracking-tight text-foreground">{s.title}</h2>
+          <h2 className="mt-10 mb-2 text-2xl font-bold tracking-tight text-foreground">
+            {s.number && <span className="mr-2 font-mono text-primary">{s.number}</span>}
+            {s.title}
+          </h2>
           <ContentRenderer blocks={s.blocks} />
         </section>
       ))}
@@ -125,6 +159,8 @@ export default async function ChapterPage({ params }: PageProps<"/cours/[chapter
           <span />
         )}
       </nav>
+
+      <ChapterChat chapterSlug={c.slug} chapterTitle={c.title} />
     </article>
   );
 }
