@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { cn } from "@/lib/utils";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,28 +22,18 @@ export const metadata: Metadata = {
     "Formation complète et gratuite pour apprendre le langage Rust, chapitre par chapitre, avec des exemples, des cas d'usage concrets, des exercices et des tests unitaires. Basée sur le Rust Book officiel.",
 };
 
-// Applique le thème avant le premier rendu pour éviter le flash.
-const themeScript = `
-(function () {
-  try {
-    var t = localStorage.getItem('rust-academy:theme');
-    if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      document.documentElement.classList.add('dark');
-    }
-  } catch (e) {}
-})();
-`;
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable}`}>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-      </head>
+    <html
+      lang="fr"
+      suppressHydrationWarning
+      className={cn("dark", geistSans.variable, geistMono.variable)}
+    >
+      <head></head>
       <body className="min-h-screen antialiased">{children}</body>
     </html>
   );
