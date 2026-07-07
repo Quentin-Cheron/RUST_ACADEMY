@@ -15,11 +15,11 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Rust Academy — Apprends Rust de A à Z",
-    template: "%s — Rust Academy",
+    default: "Dev Academy — Apprends Rust & Docker en pratiquant",
+    template: "%s — Dev Academy",
   },
   description:
-    "Formation complète et gratuite pour apprendre le langage Rust, chapitre par chapitre, avec des exemples, des cas d'usage concrets, des exercices et des tests unitaires. Basée sur le Rust Book officiel.",
+    "Formations complètes et gratuites pour apprendre Rust et Docker, chapitre par chapitre, avec des exemples, des cas d'usage concrets, des exercices et une validation immédiate.",
 };
 
 export default function RootLayout({

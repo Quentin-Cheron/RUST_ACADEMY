@@ -53,9 +53,7 @@ export default function ProjectList() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         {projects.map((p) => {
-          // TEMP: gating désactivé pour tester — remettre la ligne ci-dessous
-          // const unlocked = p.chapters.every((s) => done.has(s));
-          const unlocked = true;
+          const unlocked = p.chapters.every((s) => done.has(s));
           const card = (
             <div
               className={cn(

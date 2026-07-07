@@ -9,37 +9,39 @@ import {
   ShieldCheck,
   Zap,
   Clock,
+  Layers,
 } from "lucide-react";
-import { chapters, totalExercises } from "@/content";
+import { courses, totalExercisesIn, type Course } from "@/content/courses";
 import ThemeToggle from "@/components/ThemeToggle";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 const features = [
   {
     icon: BookOpen,
-    title: "Tout le Rust Book",
-    text: "Les 20 chapitres du livre officiel, réexpliqués en français, clairement et progressivement.",
+    title: "Des cours complets",
+    text: "Chaque notion est réexpliquée en français, clairement et progressivement, du débutant à l'avancé.",
   },
   {
     icon: Code2,
     title: "Des exemples concrets",
-    text: "Chaque notion est illustrée par du code commenté et son cas d'usage : « dans quel cas c'est utile ».",
+    text: "Du code et des commandes commentés, avec leur cas d'usage : « dans quel cas c'est utile ».",
   },
   {
     icon: Target,
     title: "Des exercices ciblés",
-    text: "Des petits exercices pour ancrer chaque concept, du plus facile au plus difficile.",
+    text: "De petits exercices pour ancrer chaque concept, du plus facile au plus difficile.",
   },
   {
     icon: FlaskConical,
-    title: "Des tests unitaires",
-    text: "Chaque exercice a sa suite de tests à faire passer avec cargo test, comme en conditions réelles.",
+    title: "Une validation immédiate",
+    text: "Tests unitaires compilés pour Rust, critères vérifiés pour Docker : tu sais tout de suite si c'est bon.",
   },
   {
     icon: Rocket,
-    title: "Un gros projet par chapitre",
-    text: "Un projet plus ambitieux à la fin de chaque chapitre pour mettre en pratique l'ensemble.",
+    title: "Un projet par chapitre",
+    text: "Un exercice plus ambitieux à la fin de chaque chapitre pour mettre en pratique l'ensemble.",
   },
   {
     icon: ShieldCheck,
@@ -48,8 +50,72 @@ const features = [
   },
 ];
 
+function CourseCard({ course }: { course: Course }) {
+  const nbExos = totalExercisesIn(course);
+  const first = course.chapters[0];
+  return (
+    <div
+      className={cn(
+        "group relative flex flex-col overflow-hidden rounded-3xl border border-border bg-card p-7 transition hover:border-primary/50 hover:shadow-lg",
+        course.theme,
+      )}
+    >
+      <div
+        className="pointer-events-none absolute inset-0 -z-10 opacity-60"
+        style={{
+          background:
+            "radial-gradient(400px circle at 85% 0%, color-mix(in oklch, var(--primary) 16%, transparent), transparent 60%)",
+        }}
+      />
+      <div className="mb-5 flex items-center gap-3">
+        <span className="grid size-12 place-items-center rounded-2xl bg-primary text-2xl font-black text-primary-foreground">
+          {course.emblem}
+        </span>
+        <div>
+          <div className="text-lg font-black text-foreground">{course.name}</div>
+          <div className="text-sm text-muted-foreground">{course.tagline}</div>
+        </div>
+      </div>
+
+      <p className="flex-1 leading-relaxed text-foreground/90">{course.blurb}</p>
+
+      <div className="mt-6 grid grid-cols-3 gap-3">
+        <MiniStat icon={Layers} value={`${course.chapters.length}`} label="Chapitres" />
+        <MiniStat icon={Target} value={`${nbExos}+`} label="Exercices" />
+        <MiniStat
+          icon={FlaskConical}
+          value={course.runner === "rust" ? "Tests" : "Critères"}
+          label="Validation"
+        />
+      </div>
+
+      <Link href={`/cours/${course.id}/${first.slug}`} className={buttonVariants({ size: "lg", className: "mt-6 w-full" })}>
+        Commencer {course.short} <ArrowRight />
+      </Link>
+    </div>
+  );
+}
+
+function MiniStat({
+  icon: Icon,
+  value,
+  label,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  value: string;
+  label: string;
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-background/60 p-3 text-center">
+      <Icon className="mx-auto mb-1 size-4 text-primary" />
+      <div className="text-base font-black text-foreground">{value}</div>
+      <div className="text-[11px] text-muted-foreground">{label}</div>
+    </div>
+  );
+}
+
 export default function Home() {
-  const nbExos = totalExercises();
+  const rust = courses[0];
 
   return (
     <div className="min-h-screen">
@@ -58,15 +124,15 @@ export default function Home() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 lg:px-8">
           <div className="flex items-center gap-2.5">
             <span className="grid size-9 place-items-center rounded-lg bg-primary text-lg font-black text-primary-foreground">
-              R
+              <Code2 className="size-5" />
             </span>
-            <span className="font-black text-foreground">Rust Academy</span>
+            <span className="font-black text-foreground">Dev Academy</span>
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Button render={<Link href={`/cours/${chapters[0].slug}`} />}>
-              Commencer <ArrowRight />
-            </Button>
+            <a href="#parcours" className={buttonVariants()}>
+              Choisir un parcours <ArrowRight />
+            </a>
           </div>
         </div>
       </header>
@@ -82,29 +148,43 @@ export default function Home() {
         />
         <div className="mx-auto max-w-6xl px-4 py-20 text-center lg:px-8 lg:py-28">
           <Badge variant="outline" className="mb-5 border-primary/40 text-primary">
-            <Zap className="size-3" /> Formation gratuite &bull; basée sur le Rust Book officiel
+            <Zap className="size-3" /> Formations gratuites &bull; Rust &amp; Docker
           </Badge>
           <h1 className="mx-auto max-w-3xl text-4xl font-black tracking-tight text-foreground lg:text-6xl">
-            Apprends <span className="text-primary">Rust</span>{" "}de zéro, jusqu&apos;à la maîtrise.
+            Apprends en <span className="text-primary">pratiquant</span>, pas juste en lisant.
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-muted-foreground">
-            Un cours complet, chapitre par chapitre, avec des explications claires, des exemples concrets,
-            des cas d&apos;usage, des exercices et des tests unitaires. Exactement comme en entreprise.
+            Deux parcours complets, chapitre par chapitre : des explications claires, des exemples
+            concrets, des cas d&apos;usage, des exercices et une validation immédiate. Choisis ta voie
+            et bascule de l&apos;une à l&apos;autre quand tu veux.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Button size="lg" render={<Link href={`/cours/${chapters[0].slug}`} />}>
-              Démarrer le chapitre 1 <ArrowRight />
-            </Button>
-            <Button size="lg" variant="outline" render={<a href="#programme" />}>
-              Voir le programme
-            </Button>
+            <a href="#parcours" className={buttonVariants({ size: "lg" })}>
+              Voir les parcours <ArrowRight />
+            </a>
+            <Link
+              href={`/cours/${rust.id}/${rust.chapters[0].slug}`}
+              className={buttonVariants({ size: "lg", variant: "outline" })}
+            >
+              Démarrer avec Rust
+            </Link>
           </div>
+        </div>
+      </section>
 
-          <div className="mx-auto mt-14 grid max-w-2xl grid-cols-3 gap-4">
-            <Stat value={`${chapters.length}`} label="Chapitres" />
-            <Stat value={`${nbExos}+`} label="Exercices & projets" />
-            <Stat value="100%" label="Avec tests" />
-          </div>
+      {/* Choix du parcours */}
+      <section id="parcours" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-14 lg:px-8">
+        <h2 className="text-center text-3xl font-black tracking-tight text-foreground">
+          Choisis ton parcours
+        </h2>
+        <p className="mx-auto mt-3 max-w-2xl text-center text-muted-foreground">
+          Chaque parcours a son propre univers, ses chapitres et ses exercices. Tu peux passer de
+          l&apos;un à l&apos;autre à tout moment depuis le sélecteur dans la barre latérale.
+        </p>
+        <div className="mt-10 grid gap-6 md:grid-cols-2">
+          {courses.map((c) => (
+            <CourseCard key={c.id} course={c} />
+          ))}
         </div>
       </section>
 
@@ -114,8 +194,8 @@ export default function Home() {
           Une pédagogie pensée pour progresser
         </h2>
         <p className="mx-auto mt-3 max-w-2xl text-center text-muted-foreground">
-          Chaque chapitre suit la même structure : on comprend, on voit un exemple, on découvre à quoi ça
-          sert, puis on pratique.
+          Chaque chapitre suit la même structure : on comprend, on voit un exemple, on découvre à quoi
+          ça sert, puis on pratique.
         </p>
         <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((f) => (
@@ -130,72 +210,60 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Programme */}
-      <section id="programme" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16 lg:px-8">
-        <h2 className="text-center text-3xl font-black tracking-tight text-foreground">Le programme complet</h2>
-        <p className="mx-auto mt-3 max-w-2xl text-center text-muted-foreground">
-          {chapters.length}{" "}chapitres pour aller des bases jusqu&apos;aux concepts avancés de Rust.
-        </p>
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {chapters.map((c) => (
-            <Link
-              key={c.slug}
-              href={`/cours/${c.slug}`}
-              className="group flex flex-col rounded-2xl border border-border bg-card p-5 transition hover:border-primary/50 hover:shadow-md"
-            >
-              <div className="mb-3 flex items-center justify-between">
-                <span className="grid size-8 place-items-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
-                  {c.number}
-                </span>
-                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                  <Clock className="size-3.5" /> {c.minutes} min
-                </span>
-              </div>
-              <h3 className="font-bold text-foreground group-hover:text-primary">{c.title}</h3>
-              <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{c.subtitle}</p>
-              <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary opacity-0 transition group-hover:opacity-100">
-                Commencer <ArrowRight className="size-3.5" />
+      {/* Aperçu des programmes */}
+      <section className="mx-auto max-w-6xl px-4 py-8 pb-16 lg:px-8">
+        {courses.map((course) => (
+          <div key={course.id} className={cn("mb-12 last:mb-0", course.theme)}>
+            <div className="mb-6 flex items-center gap-3">
+              <span className="grid size-9 place-items-center rounded-lg bg-primary text-base font-black text-primary-foreground">
+                {course.emblem}
               </span>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* CTA final */}
-      <section className="mx-auto max-w-6xl px-4 pb-24 lg:px-8">
-        <div className="rounded-3xl border border-primary/30 bg-primary/[0.06] p-10 text-center">
-          <h2 className="text-3xl font-black tracking-tight text-foreground">Prêt à écrire du Rust ?</h2>
-          <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-            Installe Rust, ouvre ton éditeur et commence dès maintenant. Chaque concept est expliqué pas à
-            pas.
-          </p>
-          <Button size="lg" className="mt-6" render={<Link href={`/cours/${chapters[0].slug}`} />}>
-            Commencer gratuitement <ArrowRight />
-          </Button>
-        </div>
+              <div>
+                <h3 className="text-xl font-black text-foreground">
+                  Programme {course.name}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {course.chapters.length} chapitres · {course.tagline}
+                </p>
+              </div>
+              <Link
+                href={`/cours/${course.id}/${course.chapters[0].slug}`}
+                className={buttonVariants({ variant: "outline", size: "sm", className: "ml-auto" })}
+              >
+                Ouvrir <ArrowRight />
+              </Link>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {course.chapters.map((c) => (
+                <Link
+                  key={c.slug}
+                  href={`/cours/${course.id}/${c.slug}`}
+                  className="group flex flex-col rounded-2xl border border-border bg-card p-4 transition hover:border-primary/50 hover:shadow-sm"
+                >
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="grid size-7 place-items-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
+                      {c.number}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                      <Clock className="size-3" /> {c.minutes} min
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-bold text-foreground group-hover:text-primary">
+                    {c.title}
+                  </h4>
+                  <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{c.subtitle}</p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        ))}
       </section>
 
       <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-        Rust Academy — Un cours communautaire inspiré du{" "}
-        <a
-          href="https://doc.rust-lang.org/book/"
-          target="_blank"
-          rel="noreferrer"
-          className="font-medium text-primary hover:underline"
-        >
-          Rust Book
-        </a>
-        .
+        Dev Academy — Des cours communautaires pour apprendre{" "}
+        <span className="font-medium text-foreground">Rust</span> et{" "}
+        <span className="font-medium text-foreground">Docker</span> en pratiquant.
       </footer>
-    </div>
-  );
-}
-
-function Stat({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="rounded-2xl border border-border bg-card p-5">
-      <div className="text-3xl font-black text-primary">{value}</div>
-      <div className="mt-1 text-sm text-muted-foreground">{label}</div>
     </div>
   );
 }

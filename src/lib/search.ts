@@ -1,7 +1,7 @@
 // Recherche globale en mémoire sur tout le contenu du cours.
 // Zéro dépendance : normalisation (accents/casse), scoring et extraits maison.
 
-import { chapters } from "@/content";
+import { courses } from "@/content/courses";
 import { reviewExercises } from "@/content/review";
 import { projects } from "@/content/projects";
 import type { ContentBlock, Exercise } from "@/content/types";
@@ -66,8 +66,8 @@ function blockToText(b: ContentBlock): { text: string; code: string } {
 
 function exerciseText(ex: Exercise): { text: string; code: string } {
   return {
-    text: [ex.prompt, ...(ex.hints ?? [])].join("\n"),
-    code: [ex.starter, ex.solution, ex.tests].join("\n"),
+    text: [ex.prompt, ...(ex.hints ?? []), ...(ex.checks?.map((c) => c.label) ?? [])].join("\n"),
+    code: [ex.starter, ex.solution, ex.tests ?? ""].join("\n"),
   };
 }
 
@@ -83,50 +83,56 @@ let INDEX: IndexedDoc[] | null = null;
 function buildIndex(): IndexedDoc[] {
   const docs: SearchDoc[] = [];
 
-  for (const c of chapters) {
-    const crumb = `Ch. ${c.number} — ${c.title}`;
-    docs.push({
-      kind: "chapitre",
-      title: `${c.number}. ${c.title}`,
-      crumb: "Chapitres",
-      href: `/cours/${c.slug}`,
-      text: [c.subtitle, c.description, ...c.objectives, ...c.keyTakeaways].join("\n"),
-      code: "",
-    });
+  for (const course of courses) {
+    const base = `/cours/${course.id}`;
+    // Un seul cours affiché ? On garde le fil d'Ariane simple. Sinon on préfixe.
+    const courseTag = courses.length > 1 ? `${course.short} · ` : "";
 
-    for (const s of c.sections) {
-      const parts = s.blocks.map(blockToText);
+    for (const c of course.chapters) {
+      const crumb = `${courseTag}Ch. ${c.number} — ${c.title}`;
       docs.push({
-        kind: "section",
-        title: s.number ? `${s.number} ${s.title}` : s.title,
+        kind: "chapitre",
+        title: `${c.number}. ${c.title}`,
+        crumb: `${courseTag}Chapitres`,
+        href: `${base}/${c.slug}`,
+        text: [c.subtitle, c.description, ...c.objectives, ...c.keyTakeaways].join("\n"),
+        code: "",
+      });
+
+      for (const s of c.sections) {
+        const parts = s.blocks.map(blockToText);
+        docs.push({
+          kind: "section",
+          title: s.number ? `${s.number} ${s.title}` : s.title,
+          crumb,
+          href: `${base}/${c.slug}#${s.id}`,
+          text: parts.map((p) => p.text).filter(Boolean).join("\n"),
+          code: parts.map((p) => p.code).filter(Boolean).join("\n"),
+        });
+      }
+
+      for (const ex of c.exercises) {
+        const t = exerciseText(ex);
+        docs.push({
+          kind: "exercice",
+          title: ex.title,
+          crumb,
+          href: `${base}/${c.slug}#exercices`,
+          text: t.text,
+          code: t.code,
+        });
+      }
+
+      const p = exerciseText(c.project);
+      docs.push({
+        kind: "projet",
+        title: c.project.title,
         crumb,
-        href: `/cours/${c.slug}#${s.id}`,
-        text: parts.map((p) => p.text).filter(Boolean).join("\n"),
-        code: parts.map((p) => p.code).filter(Boolean).join("\n"),
+        href: `${base}/${c.slug}#projet`,
+        text: p.text,
+        code: p.code,
       });
     }
-
-    for (const ex of c.exercises) {
-      const t = exerciseText(ex);
-      docs.push({
-        kind: "exercice",
-        title: ex.title,
-        crumb,
-        href: `/cours/${c.slug}#exercices`,
-        text: t.text,
-        code: t.code,
-      });
-    }
-
-    const p = exerciseText(c.project);
-    docs.push({
-      kind: "projet",
-      title: c.project.title,
-      crumb,
-      href: `/cours/${c.slug}#projet`,
-      text: p.text,
-      code: p.code,
-    });
   }
 
   for (const p of projects) {

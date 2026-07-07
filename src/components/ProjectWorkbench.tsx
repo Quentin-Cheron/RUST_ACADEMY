@@ -29,7 +29,7 @@ import { useProgress } from "@/lib/progress";
 import { renderInline } from "@/lib/inline";
 import CodeEditor from "./CodeEditor";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
@@ -92,7 +92,7 @@ function Gate({ project, done }: { project: Project; done: Set<string> }) {
           return (
             <Link
               key={slug}
-              href={`/cours/${slug}`}
+              href={`/cours/rust/${slug}`}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition",
                 complete
@@ -126,9 +126,7 @@ function ScoreBadge({ score }: { score: number }) {
 
 export default function ProjectWorkbench({ project }: { project: Project }) {
   const { done } = useProgress();
-  // TEMP: gating désactivé pour tester — remettre la ligne ci-dessous
-  // const unlocked = project.chapters.every((slug) => done.has(slug));
-  const unlocked = true;
+  const unlocked = project.chapters.every((slug) => done.has(slug));
 
   const [code, setCode] = useState(project.starter);
   const [running, setRunning] = useState(false);
@@ -175,9 +173,9 @@ export default function ProjectWorkbench({ project }: { project: Project }) {
 
   return (
     <article>
-      <Button variant="ghost" size="sm" className="mb-4" render={<Link href="/projets" />}>
+      <Link href="/projets" className={buttonVariants({ variant: "ghost", size: "sm", className: "mb-4" })}>
         <ArrowLeft /> Tous les projets
-      </Button>
+      </Link>
 
       <header className="mb-6">
         <div className="mb-3 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">

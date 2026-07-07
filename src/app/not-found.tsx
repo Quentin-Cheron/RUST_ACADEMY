@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Home } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 
 export default function NotFound() {
   return (
@@ -9,11 +9,11 @@ export default function NotFound() {
         <p className="text-6xl font-black text-primary">404</p>
         <h1 className="mt-4 text-2xl font-bold text-foreground">Page introuvable</h1>
         <p className="mt-2 text-muted-foreground">
-          Ce chapitre n&apos;existe pas (encore). Reviens au programme pour continuer à apprendre Rust.
+          Cette page n&apos;existe pas (encore). Reviens à l&apos;accueil pour choisir ton parcours.
         </p>
-        <Button className="mt-6" render={<Link href="/" />}>
+        <Link href="/" className={buttonVariants({ className: "mt-6" })}>
           <Home /> Retour à l&apos;accueil
-        </Button>
+        </Link>
       </div>
     </div>
   );

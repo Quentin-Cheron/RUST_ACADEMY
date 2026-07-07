@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Code2 } from "lucide-react";
 import AuthForm from "@/components/AuthForm";
 
 export const metadata = {
@@ -20,10 +20,10 @@ export default function ConnexionPage() {
 
         <div className="mb-6 flex items-center gap-2.5">
           <span className="grid size-10 place-items-center rounded-lg bg-primary text-xl font-black text-primary-foreground">
-            R
+            <Code2 className="size-5" />
           </span>
           <div>
-            <div className="font-black leading-tight text-foreground">Rust Academy</div>
+            <div className="font-black leading-tight text-foreground">Dev Academy</div>
             <div className="text-xs text-muted-foreground">
               Sauvegarde ta progression sur tous tes appareils
             </div>

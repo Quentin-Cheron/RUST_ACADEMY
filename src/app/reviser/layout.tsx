@@ -3,7 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import SearchDialog from "@/components/SearchDialog";
 import ThemeToggle from "@/components/ThemeToggle";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 
 export default function ReviserLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -11,9 +11,9 @@ export default function ReviserLayout({ children }: { children: React.ReactNode 
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur lg:px-8">
-          <Button variant="ghost" size="sm" render={<Link href="/" />}>
+          <Link href="/" className={buttonVariants({ variant: "ghost", size: "sm" })}>
             <ArrowLeft /> Accueil
-          </Button>
+          </Link>
           <div className="flex items-center gap-2">
             <SearchDialog />
             <ThemeToggle />

@@ -12,8 +12,10 @@ import {
   Lightbulb,
   Loader2,
   XCircle,
+  ListChecks,
 } from "lucide-react";
-import type { Exercise } from "@/content/types";
+import type { CodeLanguage, Check, Exercise } from "@/content/types";
+import type { Runner } from "@/content/courses";
 import { renderInline } from "@/lib/inline";
 import CodeBlock from "./CodeBlock";
 import CodeEditor from "./CodeEditor";
@@ -34,21 +36,56 @@ interface RunResult {
   stderr: string;
 }
 
-export default function ExerciseCard({ exercise, big = false }: { exercise: Exercise; big?: boolean }) {
+interface CheckResult {
+  label: string;
+  passed: boolean;
+}
+
+/** Évalue les critères (regex) d'un exercice « checks » directement dans le navigateur. */
+function evaluateChecks(code: string, checks: Check[]): CheckResult[] {
+  return checks.map((c) => {
+    let matched = false;
+    try {
+      matched = new RegExp(c.pattern, c.flags ?? "im").test(code);
+    } catch {
+      matched = false;
+    }
+    return { label: c.label, passed: c.negate ? !matched : matched };
+  });
+}
+
+export default function ExerciseCard({
+  exercise,
+  big = false,
+  runner = "rust",
+  language,
+}: {
+  exercise: Exercise;
+  big?: boolean;
+  runner?: Runner;
+  language?: CodeLanguage;
+}) {
+  const editorLang: CodeLanguage = exercise.language ?? language ?? "rust";
   const [revealed, setRevealed] = useState(false);
   const [code, setCode] = useState(exercise.starter);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<RunResult | null>(null);
+  const [checkResults, setCheckResults] = useState<CheckResult[] | null>(null);
 
-  const runTests = async () => {
-    setRunning(true);
+  const resetOutput = () => {
     setResult(null);
+    setCheckResults(null);
+  };
+
+  // Runner « rust » : compilation + tests réels via le Rust Playground.
+  const runRustTests = async () => {
+    setRunning(true);
+    resetOutput();
     try {
       const res = await fetch("/api/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // On concatène le code de l'apprenant avec la suite de tests du chapitre.
-        body: JSON.stringify({ code: `${code}\n\n${exercise.tests}` }),
+        body: JSON.stringify({ code: `${code}\n\n${exercise.tests ?? ""}` }),
       });
       const data = (await res.json()) as RunResult;
       setResult(data);
@@ -59,7 +96,55 @@ export default function ExerciseCard({ exercise, big = false }: { exercise: Exer
     }
   };
 
-  const testsPassed = result?.success === true;
+  // Runner « go » : exécution via le Go Playground.
+  // Si l'exercice a des tests, on les combine. Sinon on fallback sur checks.
+  const runGoCode = async () => {
+    // Pas de tests → fallback sur checks
+    if (!exercise.tests && exercise.checks?.length) {
+      runChecks();
+      return;
+    }
+    setRunning(true);
+    resetOutput();
+    try {
+      const res = await fetch("/api/run-go", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, tests: exercise.tests }),
+      });
+      const data = (await res.json()) as RunResult;
+      setResult(data);
+    } catch {
+      setResult({ success: false, stdout: "", stderr: "Erreur réseau. Réessaie." });
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  // Runner « checks » : validation par critères, dans le navigateur.
+  const runChecks = () => {
+    const results = evaluateChecks(code, exercise.checks ?? []);
+    setResult(null);
+    setCheckResults(results);
+  };
+
+  /** Le runner effectif pour cet exercice : « go » fallback sur checks si pas de tests. */
+  const effectiveRunner =
+    runner === "go" && !exercise.tests && exercise.checks?.length
+      ? "checks"
+      : runner;
+
+  const handleRun = () => {
+    if (effectiveRunner === "checks") runChecks();
+    else if (effectiveRunner === "go") void runGoCode();
+    else void runRustTests();
+  };
+
+  const testsPassed =
+    effectiveRunner === "checks"
+      ? checkResults !== null && checkResults.every((c) => c.passed)
+      : result?.success === true;
+  const hasOutput = effectiveRunner === "checks" ? checkResults !== null : result !== null;
 
   return (
     <div
@@ -100,7 +185,8 @@ export default function ExerciseCard({ exercise, big = false }: { exercise: Exer
               <CheckCircle2 /> Solution
             </TabsTrigger>
             <TabsTrigger value="tests">
-              <FlaskConical /> Tests
+              {effectiveRunner === "checks" ? <ListChecks /> : <FlaskConical />}{" "}
+              {effectiveRunner === "checks" ? "Critères" : "Tests"}
             </TabsTrigger>
           </TabsList>
 
@@ -129,7 +215,7 @@ export default function ExerciseCard({ exercise, big = false }: { exercise: Exer
                     size="sm"
                     onClick={() => {
                       setCode(exercise.starter);
-                      setResult(null);
+                      resetOutput();
                     }}
                   >
                     <RotateCcw /> Réinitialiser
@@ -139,25 +225,32 @@ export default function ExerciseCard({ exercise, big = false }: { exercise: Exer
                     size="sm"
                     onClick={() => {
                       setCode(exercise.solution);
-                      setResult(null);
+                      resetOutput();
                     }}
                   >
                     <CheckCircle2 /> Charger la solution
                   </Button>
-                  <Button size="sm" onClick={runTests} disabled={running}>
+                  <Button size="sm" onClick={handleRun} disabled={running}>
                     {running ? <Loader2 className="animate-spin" /> : <Play />}
-                    {running ? "Compilation…" : "Exécuter les tests"}
+                    {running
+                      ? "Compilation…"
+                      : effectiveRunner === "checks"
+                        ? "Vérifier"
+                        : "Exécuter les tests"}
                   </Button>
                 </div>
               </div>
 
-              <CodeEditor value={code} onValueChange={setCode} />
+              <CodeEditor value={code} onValueChange={setCode} language={editorLang} />
               <p className="mt-1.5 text-xs text-muted-foreground">
-                Écris ta solution ci-dessus. Les tests unitaires sont ajoutés automatiquement puis
-                compilés avec le vrai compilateur Rust.
+                {effectiveRunner === "checks"
+                  ? "Écris ta réponse ci-dessus. On vérifie chaque critère attendu (commande, options, fichier…)."
+                  : effectiveRunner === "go"
+                    ? "Écris ta solution ci-dessus. Le code est compilé et exécuté sur le Go Playground officiel."
+                    : "Écris ta solution ci-dessus. Les tests unitaires sont ajoutés automatiquement puis compilés avec le vrai compilateur Rust."}
               </p>
 
-              {result && (
+              {hasOutput && (
                 <div
                   className={cn(
                     "mt-4 overflow-hidden rounded-xl border",
@@ -174,10 +267,32 @@ export default function ExerciseCard({ exercise, big = false }: { exercise: Exer
                   >
                     {testsPassed ? <CheckCircle2 className="size-4" /> : <XCircle className="size-4" />}
                     {testsPassed
-                      ? "Bravo, tous les tests passent !"
-                      : "Les tests ne passent pas encore — regarde la sortie."}
+                      ? effectiveRunner === "checks"
+                        ? "Parfait, tous les critères sont remplis !"
+                        : "Bravo, tous les tests passent !"
+                      : effectiveRunner === "checks"
+                        ? "Il manque encore des critères — voir ci-dessous."
+                        : "Les tests ne passent pas encore — regarde la sortie."}
                   </div>
-                  {(result.stdout || result.stderr) && (
+
+                  {effectiveRunner === "checks" && checkResults && (
+                    <ul className="space-y-1.5 border-t border-border p-4">
+                      {checkResults.map((c, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm">
+                          {c.passed ? (
+                            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-500" />
+                          ) : (
+                            <XCircle className="mt-0.5 size-4 shrink-0 text-red-500" />
+                          )}
+                          <span className={c.passed ? "text-foreground/90" : "text-muted-foreground"}>
+                            {c.label}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {effectiveRunner !== "checks" && result && (result.stdout || result.stderr) && (
                     <pre className="max-h-72 overflow-auto border-t border-border bg-code-bg p-4 font-mono text-xs leading-relaxed text-zinc-300">
                       {result.stdout}
                       {result.stderr}
@@ -192,7 +307,7 @@ export default function ExerciseCard({ exercise, big = false }: { exercise: Exer
             {revealed ? (
               <CodeBlock
                 code={exercise.solution}
-                language="rust"
+                language={editorLang}
                 caption="Solution proposée (une parmi d'autres)"
               />
             ) : (
@@ -206,11 +321,32 @@ export default function ExerciseCard({ exercise, big = false }: { exercise: Exer
           </TabsContent>
 
           <TabsContent value="tests">
-            <p className="mb-3 text-sm text-muted-foreground">
-              Voici les tests unitaires qui valident ta solution (ajoutés automatiquement quand tu cliques
-              sur « Exécuter les tests »).
-            </p>
-            <CodeBlock code={exercise.tests} language="rust" />
+            {effectiveRunner === "checks" ? (
+              <>
+                <p className="mb-3 text-sm text-muted-foreground">
+                  Ta réponse est validée dès que tous ces critères sont remplis :
+                </p>
+                <ul className="space-y-2">
+                  {(exercise.checks ?? []).map((c, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 p-3 text-sm text-foreground/90"
+                    >
+                      <ListChecks className="mt-0.5 size-4 shrink-0 text-primary" />
+                      {c.label}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <>
+                <p className="mb-3 text-sm text-muted-foreground">
+                  Voici les tests unitaires qui valident ta solution (ajoutés automatiquement quand tu
+                  cliques sur « Exécuter les tests »).
+                </p>
+                <CodeBlock code={exercise.tests ?? ""} language={effectiveRunner === "go" ? "go" : "rust"} />
+              </>
+            )}
           </TabsContent>
         </Tabs>
       </div>

@@ -122,6 +122,96 @@
   --sidebar-ring: oklch(0.7 0.19 40);
 }
 
+/* ---- Thème Docker (bleu baleine #2496ED) ---- */
+/* Appliqué sur un sous-arbre via la classe .theme-docker : il ne redéfinit
+   que l'accent (primary) et les tokens de la sidebar, en clair comme en sombre. */
+.theme-docker {
+  --primary: oklch(0.6 0.14 248);
+  --primary-foreground: oklch(0.99 0.01 250);
+  --ring: oklch(0.6 0.14 248);
+  --accent: oklch(0.95 0.03 248);
+  --accent-foreground: oklch(0.3 0.05 250);
+
+  --sidebar-primary: oklch(0.6 0.14 248);
+  --sidebar-primary-foreground: oklch(0.99 0.01 250);
+  --sidebar-accent: oklch(0.95 0.03 248);
+  --sidebar-accent-foreground: oklch(0.3 0.04 250);
+  --sidebar-ring: oklch(0.6 0.14 248);
+}
+
+.dark .theme-docker {
+  --primary: oklch(0.68 0.14 244);
+  --primary-foreground: oklch(0.15 0.03 250);
+  --ring: oklch(0.68 0.14 244);
+  --accent: oklch(0.32 0.06 248);
+  --accent-foreground: oklch(0.95 0.02 250);
+
+  --sidebar-primary: oklch(0.68 0.14 244);
+  --sidebar-primary-foreground: oklch(0.15 0.03 250);
+  --sidebar-accent: oklch(0.3 0.05 248);
+  --sidebar-accent-foreground: oklch(0.95 0.02 250);
+  --sidebar-ring: oklch(0.68 0.14 244);
+}
+
+/* ---- Thème Go (bleu ciel Gopher #00ADD8) ---- */
+/* Bleu cyan vif fidèle à l'identité Go et à la mascotte Gopher. */
+.theme-go {
+  --primary: oklch(0.67 0.155 200);
+  --primary-foreground: oklch(0.99 0.005 200);
+  --ring: oklch(0.67 0.155 200);
+  --accent: oklch(0.94 0.04 200);
+  --accent-foreground: oklch(0.25 0.06 200);
+
+  --sidebar-primary: oklch(0.67 0.155 200);
+  --sidebar-primary-foreground: oklch(0.99 0.005 200);
+  --sidebar-accent: oklch(0.94 0.04 200);
+  --sidebar-accent-foreground: oklch(0.25 0.05 200);
+  --sidebar-ring: oklch(0.67 0.155 200);
+}
+
+.dark .theme-go {
+  --primary: oklch(0.74 0.145 200);
+  --primary-foreground: oklch(0.12 0.03 200);
+  --ring: oklch(0.74 0.145 200);
+  --accent: oklch(0.28 0.07 200);
+  --accent-foreground: oklch(0.95 0.02 200);
+
+  --sidebar-primary: oklch(0.74 0.145 200);
+  --sidebar-primary-foreground: oklch(0.12 0.03 200);
+  --sidebar-accent: oklch(0.28 0.06 200);
+  --sidebar-accent-foreground: oklch(0.95 0.02 200);
+  --sidebar-ring: oklch(0.74 0.145 200);
+}
+
+/* ---- Thème Kubernetes (bleu #326CE5) ---- */
+.theme-kubernetes {
+  --primary: oklch(0.55 0.17 265);
+  --primary-foreground: oklch(0.99 0.01 265);
+  --ring: oklch(0.55 0.17 265);
+  --accent: oklch(0.95 0.03 265);
+  --accent-foreground: oklch(0.3 0.05 265);
+
+  --sidebar-primary: oklch(0.55 0.17 265);
+  --sidebar-primary-foreground: oklch(0.99 0.01 265);
+  --sidebar-accent: oklch(0.95 0.03 265);
+  --sidebar-accent-foreground: oklch(0.3 0.04 265);
+  --sidebar-ring: oklch(0.55 0.17 265);
+}
+
+.dark .theme-kubernetes {
+  --primary: oklch(0.65 0.15 265);
+  --primary-foreground: oklch(0.15 0.03 265);
+  --ring: oklch(0.65 0.15 265);
+  --accent: oklch(0.32 0.06 265);
+  --accent-foreground: oklch(0.95 0.02 265);
+
+  --sidebar-primary: oklch(0.65 0.15 265);
+  --sidebar-primary-foreground: oklch(0.15 0.03 265);
+  --sidebar-accent: oklch(0.3 0.05 265);
+  --sidebar-accent-foreground: oklch(0.95 0.02 265);
+  --sidebar-ring: oklch(0.65 0.15 265);
+}
+
 html {
   scroll-behavior: smooth;
 }

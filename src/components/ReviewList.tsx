@@ -54,7 +54,7 @@ function LockedCard({ exercise, done }: { exercise: ReviewExercise; done: Set<st
           return (
             <Link
               key={slug}
-              href={`/cours/${slug}`}
+              href={`/cours/rust/${slug}`}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition",
                 complete

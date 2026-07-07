@@ -2,7 +2,7 @@
 // Répond aux questions sur le chapitre en cours, en s'appuyant uniquement sur son contenu.
 // Désactivable via NEXT_PUBLIC_CHAT_ENABLED=false. Nécessite OPENROUTER_API_KEY.
 
-import { getChapter } from "@/content";
+import { findChapterGlobally } from "@/content/courses";
 import type { ContentBlock } from "@/content/types";
 
 export const runtime = "nodejs";
@@ -75,9 +75,10 @@ function blockText(b: ContentBlock): string {
 }
 
 /** Construit un contexte compact du chapitre (sans le code brut, pour limiter les tokens). */
-function buildContext(slug: string): string | null {
-  const c = getChapter(slug);
-  if (!c) return null;
+function buildContext(slug: string): { context: string; subject: string } | null {
+  const found = findChapterGlobally(slug);
+  if (!found) return null;
+  const { course, chapter: c } = found;
 
   const parts: string[] = [
     `# Chapitre ${c.number} : ${c.title}`,
@@ -96,7 +97,7 @@ function buildContext(slug: string): string | null {
 
   parts.push(`\nÀ retenir : ${c.keyTakeaways.join(" ; ")}`);
 
-  return parts.join("\n").slice(0, MAX_CONTEXT);
+  return { context: parts.join("\n").slice(0, MAX_CONTEXT), subject: course.short };
 }
 
 export async function POST(req: Request): Promise<Response> {
@@ -141,13 +142,14 @@ export async function POST(req: Request): Promise<Response> {
     );
   }
 
-  const context = buildContext(chapterSlug);
-  if (!context) {
+  const built = buildContext(chapterSlug);
+  if (!built) {
     return Response.json(
       { ok: false, message: "Chapitre introuvable." } satisfies ChatResponse,
       { status: 404 },
     );
   }
+  const { context, subject } = built;
 
   const cleaned: ChatMessage[] = history
     .filter((m) => (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
@@ -161,11 +163,11 @@ export async function POST(req: Request): Promise<Response> {
     );
   }
 
-  const systeme = `Tu es un tuteur de programmation Rust bienveillant et clair, intégré à un cours en ligne. Tu réponds EXCLUSIVEMENT en français.
+  const systeme = `Tu es un tuteur ${subject} bienveillant et clair, intégré à un cours en ligne. Tu réponds EXCLUSIVEMENT en français.
 
-Tu aides l'apprenant à comprendre le chapitre qu'il est en train de lire. Appuie-toi en priorité sur le contenu du chapitre ci-dessous. Si la question sort du sujet du chapitre mais reste sur Rust, tu peux répondre brièvement. Si la question n'a aucun rapport avec Rust ou la programmation, recentre poliment.
+Tu aides l'apprenant à comprendre le chapitre qu'il est en train de lire. Appuie-toi en priorité sur le contenu du chapitre ci-dessous. Si la question sort du sujet du chapitre mais reste sur ${subject}, tu peux répondre brièvement. Si la question n'a aucun rapport avec ${subject} ou la programmation, recentre poliment.
 
-Sois concis et pédagogique : explications courtes, exemples de code Rust en blocs \`\`\`rust quand c'est utile. N'invente pas d'API. Utilise du Markdown léger.
+Sois concis et pédagogique : explications courtes, exemples de code en blocs de code quand c'est utile. N'invente pas d'API. Utilise du Markdown léger.
 
 --- CONTENU DU CHAPITRE ---
 ${context}

@@ -6,24 +6,34 @@ import hljs from "highlight.js/lib/core";
 import rust from "highlight.js/lib/languages/rust";
 import bash from "highlight.js/lib/languages/bash";
 import ini from "highlight.js/lib/languages/ini"; // pour TOML
+import dockerfile from "highlight.js/lib/languages/dockerfile";
+import yaml from "highlight.js/lib/languages/yaml";
+import go from "highlight.js/lib/languages/go";
+import type { CodeLanguage } from "@/content/types";
 import { Button } from "@/components/ui/button";
 
 hljs.registerLanguage("rust", rust);
 hljs.registerLanguage("bash", bash);
 hljs.registerLanguage("toml", ini);
+hljs.registerLanguage("dockerfile", dockerfile);
+hljs.registerLanguage("yaml", yaml);
+hljs.registerLanguage("go", go);
 
 interface Props {
   code: string;
-  language?: "rust" | "bash" | "toml" | "text";
+  language?: CodeLanguage;
   filename?: string;
   caption?: string;
 }
 
-const langLabel: Record<string, string> = {
+const langLabel: Record<CodeLanguage, string> = {
   rust: "Rust",
   bash: "Terminal",
   toml: "Cargo.toml",
   text: "Texte",
+  dockerfile: "Dockerfile",
+  yaml: "YAML",
+  go: "Go",
 };
 
 export default function CodeBlock({

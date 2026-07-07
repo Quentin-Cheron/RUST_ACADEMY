@@ -1,27 +1,27 @@
 import type { Chapter } from "./types";
 
-import { ch01 } from "./chapters/ch01";
-import { ch02 } from "./chapters/ch02";
-import { ch03 } from "./chapters/ch03";
-import { ch04 } from "./chapters/ch04";
-import { ch05 } from "./chapters/ch05";
-import { ch06 } from "./chapters/ch06";
-import { ch07 } from "./chapters/ch07";
-import { ch08 } from "./chapters/ch08";
-import { ch09 } from "./chapters/ch09";
-import { ch10 } from "./chapters/ch10";
-import { ch11 } from "./chapters/ch11";
-import { ch12 } from "./chapters/ch12";
-import { ch13 } from "./chapters/ch13";
-import { ch14 } from "./chapters/ch14";
-import { ch15 } from "./chapters/ch15";
-import { ch16 } from "./chapters/ch16";
-import { ch17 } from "./chapters/ch17";
-import { ch18 } from "./chapters/ch18";
-import { ch19 } from "./chapters/ch19";
-import { ch20 } from "./chapters/ch20";
-import { ch21 } from "./chapters/ch21";
-import { ch22 } from "./chapters/ch22";
+import { ch01 } from "./chapters/rust/ch01";
+import { ch02 } from "./chapters/rust/ch02";
+import { ch03 } from "./chapters/rust/ch03";
+import { ch04 } from "./chapters/rust/ch04";
+import { ch05 } from "./chapters/rust/ch05";
+import { ch06 } from "./chapters/rust/ch06";
+import { ch07 } from "./chapters/rust/ch07";
+import { ch08 } from "./chapters/rust/ch08";
+import { ch09 } from "./chapters/rust/ch09";
+import { ch10 } from "./chapters/rust/ch10";
+import { ch11 } from "./chapters/rust/ch11";
+import { ch12 } from "./chapters/rust/ch12";
+import { ch13 } from "./chapters/rust/ch13";
+import { ch14 } from "./chapters/rust/ch14";
+import { ch15 } from "./chapters/rust/ch15";
+import { ch16 } from "./chapters/rust/ch16";
+import { ch17 } from "./chapters/rust/ch17";
+import { ch18 } from "./chapters/rust/ch18";
+import { ch19 } from "./chapters/rust/ch19";
+import { ch20 } from "./chapters/rust/ch20";
+import { ch21 } from "./chapters/rust/ch21";
+import { ch22 } from "./chapters/rust/ch22";
 
 /** Tous les chapitres, dans l'ordre. */
 export const chapters: Chapter[] = [

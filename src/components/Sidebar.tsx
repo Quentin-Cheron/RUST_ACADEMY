@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Menu, Check, Dumbbell, FolderGit2, ChevronRight, LogIn, LogOut, UserRound } from "lucide-react";
-import { chapters } from "@/content";
+import { courses, getCourse, defaultCourse, type Course } from "@/content/courses";
 import { useProgress } from "@/lib/progress";
 import { signOut, useSession } from "@/lib/auth-client";
 import { Progress } from "@/components/ui/progress";
@@ -64,11 +64,39 @@ function AccountFooter({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
+/** Bascule entre les cours (Rust / Docker…). */
+function CourseSwitcher({ current, onNavigate }: { current: Course; onNavigate?: () => void }) {
+  return (
+    <div className="mb-4 grid grid-cols-2 gap-1 rounded-lg border border-sidebar-border bg-sidebar-accent/40 p-1">
+      {courses.map((co) => {
+        const active = co.id === current.id;
+        return (
+          <Link
+            key={co.id}
+            href={`/cours/${co.id}/${co.chapters[0].slug}`}
+            onClick={onNavigate}
+            className={cn(
+              "flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold transition",
+              active
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+            )}
+          >
+            <span className="grid size-4 place-items-center text-[11px] font-black">{co.emblem}</span>
+            {co.short}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
+function SidebarBody({ course, onNavigate }: { course: Course; onNavigate?: () => void }) {
   const pathname = usePathname();
   const { done } = useProgress();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const pct = Math.round((done.size / chapters.length) * 100);
+  const doneInCourse = course.chapters.filter((c) => done.has(c.slug)).length;
+  const pct = Math.round((doneInCourse / course.chapters.length) * 100);
 
   const toggleExpand = (slug: string) => {
     setExpanded((prev) => {
@@ -84,15 +112,19 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
       <div className="border-b border-sidebar-border p-5">
         <Link href="/" className="flex items-center gap-2.5" onClick={onNavigate}>
           <span className="grid size-9 place-items-center rounded-lg bg-primary text-lg font-black text-primary-foreground">
-            R
+            {course.emblem}
           </span>
           <div>
-            <div className="font-black leading-tight text-sidebar-foreground">Rust Academy</div>
-            <div className="text-xs text-muted-foreground">Apprends Rust de A a Z</div>
+            <div className="font-black leading-tight text-sidebar-foreground">{course.name}</div>
+            <div className="text-xs text-muted-foreground">{course.tagline}</div>
           </div>
         </Link>
 
         <div className="mt-4">
+          <CourseSwitcher current={course} onNavigate={onNavigate} />
+        </div>
+
+        <div>
           <div className="mb-1.5 flex justify-between text-xs text-muted-foreground">
             <span>Progression</span>
             <span className="font-medium text-foreground">{pct}%</span>
@@ -100,41 +132,45 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
           <Progress value={pct} className="h-2" />
         </div>
 
-        <Link
-          href="/reviser"
-          onClick={onNavigate}
-          className={cn(
-            "mt-3 flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition",
-            pathname === "/reviser"
-              ? "border-primary/40 bg-sidebar-accent text-primary"
-              : "border-sidebar-border text-sidebar-foreground/80 hover:bg-sidebar-accent/60",
-          )}
-        >
-          <Dumbbell className="size-4 text-primary" />
-          Réviser
-          <span className="ml-auto text-xs text-muted-foreground">exercices mixés</span>
-        </Link>
+        {course.id === "rust" && (
+          <>
+            <Link
+              href="/reviser"
+              onClick={onNavigate}
+              className={cn(
+                "mt-3 flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition",
+                pathname === "/reviser"
+                  ? "border-primary/40 bg-sidebar-accent text-primary"
+                  : "border-sidebar-border text-sidebar-foreground/80 hover:bg-sidebar-accent/60",
+              )}
+            >
+              <Dumbbell className="size-4 text-primary" />
+              Réviser
+              <span className="ml-auto text-xs text-muted-foreground">exercices mixés</span>
+            </Link>
 
-        <Link
-          href="/projets"
-          onClick={onNavigate}
-          className={cn(
-            "mt-2 flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition",
-            pathname.startsWith("/projets")
-              ? "border-primary/40 bg-sidebar-accent text-primary"
-              : "border-sidebar-border text-sidebar-foreground/80 hover:bg-sidebar-accent/60",
-          )}
-        >
-          <FolderGit2 className="size-4 text-primary" />
-          Projets
-          <span className="ml-auto text-xs text-muted-foreground">+ relecture IA</span>
-        </Link>
+            <Link
+              href="/projets"
+              onClick={onNavigate}
+              className={cn(
+                "mt-2 flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition",
+                pathname.startsWith("/projets")
+                  ? "border-primary/40 bg-sidebar-accent text-primary"
+                  : "border-sidebar-border text-sidebar-foreground/80 hover:bg-sidebar-accent/60",
+              )}
+            >
+              <FolderGit2 className="size-4 text-primary" />
+              Projets
+              <span className="ml-auto text-xs text-muted-foreground">+ relecture IA</span>
+            </Link>
+          </>
+        )}
       </div>
 
       <ScrollArea className="min-h-0 flex-1">
         <nav className="p-3">
-          {chapters.map((c) => {
-            const href = `/cours/${c.slug}`;
+          {course.chapters.map((c) => {
+            const href = `/cours/${course.id}/${c.slug}`;
             const active = pathname === href;
             const complete = done.has(c.slug);
             const open = active || expanded.has(c.slug);
@@ -211,14 +247,15 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-export default function Sidebar() {
+export default function Sidebar({ courseId }: { courseId?: string }) {
   const [open, setOpen] = useState(false);
+  const course = (courseId && getCourse(courseId)) || defaultCourse;
 
   return (
     <>
       {/* Desktop */}
       <aside className="sticky top-0 hidden h-screen w-72 shrink-0 border-r border-sidebar-border bg-sidebar lg:block">
-        <SidebarBody />
+        <SidebarBody course={course} />
       </aside>
 
       {/* Mobile */}
@@ -233,9 +270,9 @@ export default function Sidebar() {
             </Button>
           }
         />
-        <SheetContent side="left" className="w-72 bg-sidebar p-0">
+        <SheetContent side="left" className={cn("w-72 bg-sidebar p-0", course.theme)}>
           <SheetTitle className="sr-only">Chapitres</SheetTitle>
-          <SidebarBody onNavigate={() => setOpen(false)} />
+          <SidebarBody course={course} onNavigate={() => setOpen(false)} />
         </SheetContent>
       </Sheet>
     </>
