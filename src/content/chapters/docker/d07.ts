@@ -7,7 +7,7 @@ export const d07: Chapter = {
   subtitle: "Multi-stage builds, optimisation et bonnes pratiques de sécurité.",
   description:
     "Un Dockerfile basique suffit pour démarrer, mais en production les exigences changent : images légères, builds rapides, sécurité renforcée. Ce chapitre couvre les **multi-stage builds** (séparer la compilation du runtime), les instructions avancées (ARG, HEALTHCHECK), le `.dockerignore`, l'exécution en utilisateur non-root et les techniques d'optimisation de taille d'image.",
-  minutes: 35,
+  minutes: 40,
   rustBookRef: "Docs Docker — Multi-stage builds",
   objectives: [
     "Écrire un Dockerfile multi-stage pour séparer build et runtime",
@@ -15,6 +15,7 @@ export const d07: Chapter = {
     "Sécuriser une image : utilisateur non-root, pas de secrets embarqués",
     "Optimiser la taille d'image avec Alpine, distroless et le nettoyage de couches",
     "Maîtriser le .dockerignore pour accélérer les builds",
+    "Utiliser les caches de build BuildKit et les mounts de secrets pour des builds rapides et sécurisés",
   ],
   sections: [
     {
@@ -230,8 +231,48 @@ export const d07: Chapter = {
       ],
     },
     {
-      id: "cas-pratiques",
+      id: "buildkit",
       number: "7.5",
+      title: "BuildKit : caches de build et secrets",
+      blocks: [
+        {
+          type: "paragraph",
+          text: "**BuildKit** est le moteur de build moderne de Docker, activé par défaut depuis Docker 23+. Il apporte des fonctionnalités avancées : caches de build persistants, montage de secrets, parallélisation des stages et bien plus. Pour activer les dernières fonctionnalités BuildKit dans un Dockerfile, ajoutez la directive `# syntax=docker/dockerfile:1` en première ligne.",
+        },
+        {
+          type: "code",
+          language: "dockerfile",
+          filename: "Dockerfile (cache npm)",
+          code: '# syntax=docker/dockerfile:1\nFROM node:22-alpine\nWORKDIR /app\nCOPY package*.json ./\n# Le cache npm persiste entre les builds — meme si la couche est invalidee\nRUN --mount=type=cache,target=/root/.npm npm ci\nCOPY . .\nCMD ["node", "index.js"]',
+          caption: "`--mount=type=cache` garde le cache npm entre les builds, meme quand package.json change.",
+        },
+        {
+          type: "code",
+          language: "dockerfile",
+          filename: "Dockerfile (secret mount)",
+          code: '# syntax=docker/dockerfile:1\nFROM python:3.12-slim\nWORKDIR /app\nCOPY requirements.txt .\n# Le secret n\'est jamais grave dans une couche de l\'image\nRUN --mount=type=secret,id=pip_token \\\n    PIP_INDEX_URL="https://$(cat /run/secrets/pip_token)@pypi.example.com/simple" \\\n    pip install -r requirements.txt\nCOPY . .\nCMD ["python", "app.py"]',
+          caption: "`--mount=type=secret` injecte un secret au build sans le graver dans l'image.",
+        },
+        {
+          type: "code",
+          language: "bash",
+          code: '# Passer le secret au build\necho "mon-token-secret" > token.txt\ndocker build --secret id=pip_token,src=token.txt -t mon-app .\n\n# Le secret est monte dans /run/secrets/pip_token pendant le build\n# Il n\'apparait dans AUCUNE couche de l\'image finale',
+        },
+        {
+          type: "callout",
+          variant: "tip",
+          text: "Depuis BuildKit, `COPY --link` decouple la couche copiee du reste du systeme de fichiers. Les couches `COPY --link` peuvent etre construites en parallele et cachees independamment. Utile pour les copies de fichiers volumineux.",
+        },
+        {
+          type: "usecase",
+          title: "Accelerer les builds en CI",
+          text: "En CI/CD, le cache npm/pip est souvent perdu entre les runs. `--mount=type=cache` + un cache persistant (GitHub Actions cache, BuildKit cache export) divisent le temps de build par 2 a 5. Les secrets evitent de stocker des tokens dans des variables d'environnement qui se retrouvent dans `docker history`.",
+        },
+      ],
+    },
+    {
+      id: "cas-pratiques",
+      number: "7.6",
       title: "Cas pratiques : vrais Dockerfiles de production",
       blocks: [
         {
@@ -472,6 +513,31 @@ export const d07: Chapter = {
         { label: "EXPOSE 8080", pattern: "^EXPOSE\\s+8080" },
       ],
     },
+    {
+      id: "d7-ex9",
+      title: "BuildKit cache mount pour Python",
+      difficulty: "moyen",
+      language: "dockerfile",
+      prompt:
+        "Écris un Dockerfile qui utilise **BuildKit** pour accélérer l'installation de dépendances Python. Commence par `# syntax=docker/dockerfile:1`, utilise `python:3.12-slim` comme image de base, WORKDIR `/app`, copie `requirements.txt`, puis installe les dépendances avec `pip install` en montant un **cache BuildKit** sur `/root/.cache/pip` (avec `--mount=type=cache`). Copie le reste du code et lance `python app.py`.",
+      hints: [
+        "La première ligne doit être `# syntax=docker/dockerfile:1` pour activer les fonctionnalités BuildKit.",
+        "Le cache pip se trouve dans `/root/.cache/pip`.",
+        "La syntaxe est `RUN --mount=type=cache,target=/chemin commande`.",
+      ],
+      starter: "# syntax=docker/dockerfile:1\nFROM python:3.12-slim\n\n# Installe les dépendances avec cache BuildKit\n",
+      solution:
+        '# syntax=docker/dockerfile:1\nFROM python:3.12-slim\nWORKDIR /app\nCOPY requirements.txt .\nRUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements.txt\nCOPY . .\nCMD ["python", "app.py"]',
+      checks: [
+        { label: "Directive syntax BuildKit", pattern: "#\\s*syntax=docker/dockerfile:1" },
+        { label: "Image python:3.12-slim", pattern: "FROM\\s+python:3\\.12-slim" },
+        { label: "WORKDIR /app", pattern: "^WORKDIR\\s+/app" },
+        { label: "Copie requirements.txt", pattern: "COPY\\s+requirements\\.txt" },
+        { label: "Mount cache BuildKit pour pip", pattern: "--mount=type=cache,target=/root/\\.cache/pip" },
+        { label: "pip install", pattern: "pip\\s+install\\s+-r\\s+requirements\\.txt" },
+        { label: "Lance python app.py", pattern: "python.*app\\.py" },
+      ],
+    },
   ],
   project: {
     id: "d7-projet",
@@ -507,5 +573,6 @@ export const d07: Chapter = {
     "Le .dockerignore exclut les fichiers inutiles du contexte de build (node_modules, .git, .env…).",
     "Toujours exécuter en utilisateur non-root (USER) et ne jamais embarquer de secrets dans l'image.",
     "Alpine, slim, distroless, scratch : choisir l'image de base la plus légère possible pour le cas d'usage.",
+    "`--mount=type=cache` accélère les builds en persistant le cache npm/pip entre les runs ; `--mount=type=secret` injecte des secrets sans les graver dans les couches.",
   ],
 };

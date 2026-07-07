@@ -34,7 +34,9 @@ export type Runner =
   // Compilation + exécution via le Go Playground. Fallback sur checks si pas de tests.
   | "go"
   // Critères (regex) évalués dans le navigateur (Docker : pas d'exécution).
-  | "checks";
+  | "checks"
+  // Checks regex (offline) + bouton "Exécuter dans Docker" (optionnel).
+  | "docker";
 
 /** Un parcours de formation complet (Rust, Docker…). */
 export interface Course {
@@ -94,7 +96,7 @@ export const courses: Course[] = [
     blurb:
       "Des conteneurs au déploiement en production : Dockerfile, Compose, Nginx, HTTPS, stacks multi-services, CI/CD et sécurité. 12 chapitres avec exercices validés à chaque étape.",
     theme: "theme-docker",
-    runner: "checks",
+    runner: "docker",
     editorLanguage: "bash",
     bookLabel: "Docs Docker",
     chapters: dockerChapters,

@@ -13,6 +13,7 @@ import {
   Loader2,
   XCircle,
   ListChecks,
+  Terminal,
 } from "lucide-react";
 import type { CodeLanguage, Check, Exercise } from "@/content/types";
 import type { Runner } from "@/content/courses";
@@ -23,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { useDockerSession } from "@/lib/useDockerSession";
 
 const diffStyle: Record<string, string> = {
   facile: "border-emerald-400/40 bg-emerald-400/10 text-emerald-600 dark:text-emerald-400",
@@ -71,10 +73,15 @@ export default function ExerciseCard({
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<RunResult | null>(null);
   const [checkResults, setCheckResults] = useState<CheckResult[] | null>(null);
+  const [dockerOutput, setDockerOutput] = useState<string | null>(null);
+  const [dockerRunning, setDockerRunning] = useState(false);
+
+  const dockerSession = useDockerSession();
 
   const resetOutput = () => {
     setResult(null);
     setCheckResults(null);
+    setDockerOutput(null);
   };
 
   // Runner « rust » : compilation + tests réels via le Rust Playground.
@@ -128,23 +135,49 @@ export default function ExerciseCard({
     setCheckResults(results);
   };
 
+  // Runner « docker » : exécuter la commande/Dockerfile dans le conteneur partagé.
+  const runDocker = async () => {
+    if (!dockerSession) return;
+    if (!dockerSession.sessionId) {
+      await dockerSession.startSession();
+    }
+    setDockerRunning(true);
+    setDockerOutput(null);
+    try {
+      const isDockerfile = editorLang === "dockerfile";
+      const output = isDockerfile
+        ? await dockerSession.execBuild(code)
+        : await dockerSession.execCommand(code.trim());
+      setDockerOutput(output);
+    } catch (err) {
+      setDockerOutput(err instanceof Error ? err.message : "Erreur Docker");
+    } finally {
+      setDockerRunning(false);
+    }
+  };
+
   /** Le runner effectif pour cet exercice : « go » fallback sur checks si pas de tests. */
   const effectiveRunner =
     runner === "go" && !exercise.tests && exercise.checks?.length
       ? "checks"
-      : runner;
+      : runner === "docker"
+        ? "docker"
+        : runner;
 
   const handleRun = () => {
-    if (effectiveRunner === "checks") runChecks();
+    if (effectiveRunner === "checks" || effectiveRunner === "docker") runChecks();
     else if (effectiveRunner === "go") void runGoCode();
     else void runRustTests();
   };
 
   const testsPassed =
-    effectiveRunner === "checks"
+    effectiveRunner === "checks" || effectiveRunner === "docker"
       ? checkResults !== null && checkResults.every((c) => c.passed)
       : result?.success === true;
-  const hasOutput = effectiveRunner === "checks" ? checkResults !== null : result !== null;
+  const hasOutput =
+    effectiveRunner === "checks" || effectiveRunner === "docker"
+      ? checkResults !== null
+      : result !== null;
 
   return (
     <div
@@ -185,8 +218,8 @@ export default function ExerciseCard({
               <CheckCircle2 /> Solution
             </TabsTrigger>
             <TabsTrigger value="tests">
-              {effectiveRunner === "checks" ? <ListChecks /> : <FlaskConical />}{" "}
-              {effectiveRunner === "checks" ? "Critères" : "Tests"}
+              {effectiveRunner === "checks" || effectiveRunner === "docker" ? <ListChecks /> : <FlaskConical />}{" "}
+              {effectiveRunner === "checks" || effectiveRunner === "docker" ? "Critères" : "Tests"}
             </TabsTrigger>
           </TabsList>
 
@@ -234,20 +267,34 @@ export default function ExerciseCard({
                     {running ? <Loader2 className="animate-spin" /> : <Play />}
                     {running
                       ? "Compilation…"
-                      : effectiveRunner === "checks"
+                      : effectiveRunner === "checks" || effectiveRunner === "docker"
                         ? "Vérifier"
                         : "Exécuter les tests"}
                   </Button>
+                  {effectiveRunner === "docker" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void runDocker()}
+                      disabled={dockerRunning || (dockerSession?.busy ?? false)}
+                      className="border-sky-500/40 text-sky-600 hover:bg-sky-500/10 dark:text-sky-400"
+                    >
+                      {dockerRunning ? <Loader2 className="animate-spin" /> : <Terminal className="size-4" />}
+                      {dockerRunning ? "Execution…" : "Executer dans Docker"}
+                    </Button>
+                  )}
                 </div>
               </div>
 
               <CodeEditor value={code} onValueChange={setCode} language={editorLang} />
               <p className="mt-1.5 text-xs text-muted-foreground">
-                {effectiveRunner === "checks"
-                  ? "Écris ta réponse ci-dessus. On vérifie chaque critère attendu (commande, options, fichier…)."
-                  : effectiveRunner === "go"
-                    ? "Écris ta solution ci-dessus. Le code est compilé et exécuté sur le Go Playground officiel."
-                    : "Écris ta solution ci-dessus. Les tests unitaires sont ajoutés automatiquement puis compilés avec le vrai compilateur Rust."}
+                {effectiveRunner === "docker"
+                  ? "Verifie tes criteres ou teste en vrai avec Docker."
+                  : effectiveRunner === "checks"
+                    ? "Écris ta réponse ci-dessus. On vérifie chaque critère attendu (commande, options, fichier…)."
+                    : effectiveRunner === "go"
+                      ? "Écris ta solution ci-dessus. Le code est compilé et exécuté sur le Go Playground officiel."
+                      : "Écris ta solution ci-dessus. Les tests unitaires sont ajoutés automatiquement puis compilés avec le vrai compilateur Rust."}
               </p>
 
               {hasOutput && (
@@ -267,15 +314,15 @@ export default function ExerciseCard({
                   >
                     {testsPassed ? <CheckCircle2 className="size-4" /> : <XCircle className="size-4" />}
                     {testsPassed
-                      ? effectiveRunner === "checks"
+                      ? effectiveRunner === "checks" || effectiveRunner === "docker"
                         ? "Parfait, tous les critères sont remplis !"
                         : "Bravo, tous les tests passent !"
-                      : effectiveRunner === "checks"
+                      : effectiveRunner === "checks" || effectiveRunner === "docker"
                         ? "Il manque encore des critères — voir ci-dessous."
                         : "Les tests ne passent pas encore — regarde la sortie."}
                   </div>
 
-                  {effectiveRunner === "checks" && checkResults && (
+                  {(effectiveRunner === "checks" || effectiveRunner === "docker") && checkResults && (
                     <ul className="space-y-1.5 border-t border-border p-4">
                       {checkResults.map((c, i) => (
                         <li key={i} className="flex items-start gap-2 text-sm">
@@ -292,12 +339,24 @@ export default function ExerciseCard({
                     </ul>
                   )}
 
-                  {effectiveRunner !== "checks" && result && (result.stdout || result.stderr) && (
+                  {effectiveRunner !== "checks" && effectiveRunner !== "docker" && result && (result.stdout || result.stderr) && (
                     <pre className="max-h-72 overflow-auto border-t border-border bg-code-bg p-4 font-mono text-xs leading-relaxed text-zinc-300">
                       {result.stdout}
                       {result.stderr}
                     </pre>
                   )}
+                </div>
+              )}
+
+              {/* Docker output */}
+              {effectiveRunner === "docker" && dockerOutput !== null && (
+                <div className="mt-4 overflow-hidden rounded-xl border border-sky-500/30 bg-[#1a1e26]">
+                  <div className="flex items-center gap-2 border-b border-white/10 bg-[#14171e] px-4 py-2 text-sm font-semibold text-sky-400">
+                    <Terminal className="size-4" /> Sortie Docker
+                  </div>
+                  <pre className="max-h-72 overflow-auto p-4 font-mono text-xs leading-relaxed text-zinc-300">
+                    {dockerOutput || "(aucune sortie)"}
+                  </pre>
                 </div>
               )}
             </div>
@@ -321,7 +380,7 @@ export default function ExerciseCard({
           </TabsContent>
 
           <TabsContent value="tests">
-            {effectiveRunner === "checks" ? (
+            {effectiveRunner === "checks" || effectiveRunner === "docker" ? (
               <>
                 <p className="mb-3 text-sm text-muted-foreground">
                   Ta réponse est validée dès que tous ces critères sont remplis :

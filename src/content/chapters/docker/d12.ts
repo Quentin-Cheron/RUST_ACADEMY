@@ -7,13 +7,14 @@ export const d12: Chapter = {
   subtitle: "Registry, CI/CD, sécurité et introduction à l'orchestration.",
   description:
     "Docker en développement, c'est acquis. Maintenant on passe à la production : pousser ses images sur un **registry** (Docker Hub, GitHub Container Registry), automatiser les builds avec la **CI/CD** (GitHub Actions), appliquer les **bonnes pratiques de sécurité** (scan, limites de ressources, secrets), et découvrir les bases de l'**orchestration** (Docker Swarm, aperçu Kubernetes).",
-  minutes: 35,
+  minutes: 40,
   rustBookRef: "Docs Docker — Deploy",
   objectives: [
     "Tagger et pousser une image sur Docker Hub ou un registry privé",
     "Automatiser le build et le push dans un pipeline CI/CD",
     "Appliquer les bonnes pratiques de sécurité en production",
     "Comprendre quand passer de Compose à un orchestrateur",
+    "Limiter les ressources CPU/mémoire et scanner les vulnérabilités avec Docker Scout",
   ],
   sections: [
     {
@@ -150,6 +151,61 @@ export const d12: Chapter = {
           type: "callout",
           variant: "tip",
           text: "Les images officielles PostgreSQL, MySQL et MariaDB supportent `*_FILE` : `POSTGRES_PASSWORD_FILE=/run/secrets/db_password` au lieu de `POSTGRES_PASSWORD=secret`.",
+        },
+        {
+          type: "heading",
+          level: 3,
+          text: "Limiter les ressources",
+        },
+        {
+          type: "paragraph",
+          text: "Un conteneur sans limites peut consommer toute la mémoire ou tous les CPU de l'hôte. En production, on impose des **limites de ressources** pour éviter qu'un service dégrade les autres.",
+        },
+        {
+          type: "code",
+          language: "bash",
+          code: "# Limiter un conteneur à 512 Mo de RAM et 0.5 CPU\ndocker run -d --name api \\\n  --memory=512m \\\n  --cpus=0.5 \\\n  --pids-limit=100 \\\n  mon-api:1.0\n\n# Vérifier les limites\ndocker stats api --no-stream",
+          caption: "`--memory`, `--cpus` et `--pids-limit` protègent l'hôte contre les fuites de ressources.",
+        },
+        {
+          type: "code",
+          language: "yaml",
+          code: "# En Compose : deploy.resources\nservices:\n  api:\n    image: mon-api:1.0\n    deploy:\n      resources:\n        limits:\n          memory: 512M\n          cpus: \"0.50\"\n        reservations:\n          memory: 256M\n          cpus: \"0.25\"",
+          caption: "En Compose, les limites se déclarent dans `deploy.resources`.",
+        },
+        {
+          type: "callout",
+          variant: "warning",
+          text: "Sans `--memory`, un conteneur qui fuit peut déclencher l'**OOM Killer** du noyau Linux, tuant des conteneurs au hasard. Toujours fixer des limites en production.",
+        },
+        {
+          type: "paragraph",
+          text: "Pour les données sensibles éphémères (tokens de session, fichiers temporaires), utilise un **tmpfs mount** : stocké en RAM, jamais écrit sur disque, détruit avec le conteneur.",
+        },
+        {
+          type: "code",
+          language: "bash",
+          code: "# Monte un tmpfs de 64 Mo dans /app/tmp\ndocker run -d --tmpfs /app/tmp:rw,size=64m mon-api:1.0",
+        },
+        {
+          type: "heading",
+          level: 3,
+          text: "Scanner ses images avec Docker Scout",
+        },
+        {
+          type: "paragraph",
+          text: "Docker Scout analyse les images pour détecter les **vulnérabilités connues** (CVE) dans les paquets et bibliothèques. Intégré à Docker Desktop et disponible en CLI.",
+        },
+        {
+          type: "code",
+          language: "bash",
+          code: "# Vue rapide des vulnérabilités\ndocker scout quickview mon-api:1.0\n\n# Détail des CVE\ndocker scout cves mon-api:1.0\n\n# Recommandations de mise à jour\ndocker scout recommendations mon-api:1.0",
+          caption: "Docker Scout détecte les CVE et recommande des mises à jour d'images de base.",
+        },
+        {
+          type: "callout",
+          variant: "tip",
+          text: "Intègre `docker scout cves` dans ta CI/CD pour bloquer le déploiement si des vulnérabilités critiques sont détectées. GitHub Actions : `docker/scout-action@v1`.",
         },
       ],
     },
@@ -418,6 +474,46 @@ export const d12: Chapter = {
         { label: "Tag ghcr.io", pattern: "ghcr\\.io/monorg/api:latest" },
       ],
     },
+    {
+      id: "d12-ex8",
+      title: "Limites de ressources avec docker run",
+      difficulty: "moyen",
+      language: "bash",
+      prompt:
+        "Lance **mon-api:1.0** en arrière-plan avec le nom **api**, limité à **512 Mo** de RAM, **0.5** CPU et **100** processus maximum (`--pids-limit`).",
+      hints: [
+        "`--memory=512m` pour limiter la RAM.",
+        "`--cpus=0.5` pour le CPU et `--pids-limit=100` pour les processus.",
+      ],
+      starter: "docker run -d --name api ",
+      solution: "docker run -d --name api --memory=512m --cpus=0.5 --pids-limit=100 mon-api:1.0",
+      checks: [
+        { label: "Arrière-plan", pattern: "docker\\s+run.*-d" },
+        { label: "Nom api", pattern: "--name\\s+api" },
+        { label: "Mémoire 512m", pattern: "--memory[= ]512m" },
+        { label: "CPU 0.5", pattern: "--cpus[= ]0\\.5" },
+        { label: "PID limit 100", pattern: "--pids-limit[= ]100" },
+        { label: "Image mon-api:1.0", pattern: "mon-api:1\\.0" },
+      ],
+    },
+    {
+      id: "d12-ex9",
+      title: "Docker Scout : quickview et recommandations",
+      difficulty: "facile",
+      language: "bash",
+      prompt:
+        "Écris deux commandes (une par ligne) : (1) affiche un **résumé rapide** des vulnérabilités de **mon-api:1.0** avec Docker Scout (`quickview`), (2) affiche les **recommandations** de mise à jour.",
+      hints: [
+        "`docker scout quickview` pour la vue rapide.",
+        "`docker scout recommendations` pour les mises à jour suggérées.",
+      ],
+      starter: "# 1. Vue rapide\n\n# 2. Recommandations\n",
+      solution: "docker scout quickview mon-api:1.0\ndocker scout recommendations mon-api:1.0",
+      checks: [
+        { label: "Commande quickview", pattern: "docker\\s+scout\\s+quickview\\s+mon-api:1\\.0" },
+        { label: "Commande recommendations", pattern: "docker\\s+scout\\s+recommendations\\s+mon-api:1\\.0" },
+      ],
+    },
   ],
   project: {
     id: "d12-projet",
@@ -452,5 +548,6 @@ export const d12: Chapter = {
     "Scanner les images (docker scout, trivy) en CI avant tout déploiement.",
     "Limites de ressources, read-only filesystem et Docker secrets renforcent la sécurité.",
     "Compose suffit pour un seul serveur ; Swarm ou Kubernetes pour scaler sur plusieurs machines.",
+    "`--memory` et `--cpus` protègent l'hôte ; `docker scout cves` détecte les vulnérabilités avant le déploiement.",
   ],
 };

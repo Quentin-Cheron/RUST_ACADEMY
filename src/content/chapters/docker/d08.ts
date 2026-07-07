@@ -15,6 +15,7 @@ export const d08: Chapter = {
     "Activer des services selon le contexte avec les profiles",
     "Paramétrer le build dans Compose (context, target, args)",
     "Configurer docker compose watch pour le rechargement automatique",
+    "Composer des stacks modulaires avec include et extends",
   ],
   sections: [
     {
@@ -242,6 +243,82 @@ export const d08: Chapter = {
         },
       ],
     },
+    {
+      id: "include-extends",
+      number: "8.7",
+      title: "include et extends : stacks modulaires",
+      blocks: [
+        {
+          type: "paragraph",
+          text: "Quand un projet grossit (mono-repo, microservices), un seul `compose.yaml` devient difficile a maintenir. Compose propose deux mecanismes complementaires : **`include`** pour importer des fichiers Compose entiers, et **`extends`** pour heriter de la configuration d'un service defini ailleurs.",
+        },
+        {
+          type: "heading",
+          level: 2,
+          text: "include : importer des fichiers Compose externes",
+        },
+        {
+          type: "paragraph",
+          text: "`include` importe un ou plusieurs fichiers Compose complets (services, reseaux, volumes) dans le fichier principal. Chaque fichier importe reste autonome : on peut le lancer seul ou l'inclure dans un projet plus large. C'est ideal pour les mono-repos ou l'infrastructure partagee.",
+        },
+        {
+          type: "code",
+          language: "yaml",
+          filename: "compose.yaml",
+          code: "# compose.yaml principal\ninclude:\n  - path: ./monitoring/compose.yaml  # importe Prometheus + Grafana\n  - path: ./db/compose.yaml          # importe PostgreSQL\n\nservices:\n  api:\n    build: .\n    ports:\n      - \"4000:4000\"\n    depends_on:\n      - db",
+          caption: "`include` importe des fichiers Compose externes -- ideal pour les mono-repos.",
+        },
+        {
+          type: "callout",
+          variant: "info",
+          title: "Chemins relatifs dans include",
+          text: "Les chemins dans `include` sont relatifs au fichier Compose principal. Les `build.context`, volumes et autres chemins du fichier importe restent relatifs a **leur propre fichier**, pas au fichier principal.",
+        },
+        {
+          type: "heading",
+          level: 2,
+          text: "extends : heriter de la configuration d'un service",
+        },
+        {
+          type: "paragraph",
+          text: "`extends` permet a un service d'heriter de la configuration d'un autre service, defini dans le meme fichier ou dans un fichier externe. C'est le principe **DRY** applique a Compose : on definit une base commune et chaque service la specialise.",
+        },
+        {
+          type: "code",
+          language: "yaml",
+          filename: "compose.base.yaml",
+          code: "# compose.base.yaml\nservices:\n  node-base:\n    image: node:22-alpine\n    working_dir: /app\n    volumes:\n      - ./:/app\n    environment:\n      NODE_ENV: development",
+          caption: "Service de base partage entre plusieurs services.",
+        },
+        {
+          type: "code",
+          language: "yaml",
+          filename: "compose.yaml",
+          code: "# compose.yaml\nservices:\n  api:\n    extends:\n      file: compose.base.yaml\n      service: node-base\n    command: [\"node\", \"api/index.js\"]\n    ports:\n      - \"4000:4000\"\n\n  worker:\n    extends:\n      file: compose.base.yaml\n      service: node-base\n    command: [\"node\", \"worker/index.js\"]",
+          caption: "`extends` herite de la config d'un service de base -- DRY pour les mono-repos.",
+        },
+        {
+          type: "list",
+          items: [
+            "**file** : chemin du fichier Compose contenant le service de base (optionnel si le service est dans le meme fichier).",
+            "**service** : nom du service dont on herite.",
+            "Les proprietes du service enfant **ecrasent** celles du parent (meme cle = remplacement).",
+            "Les listes (`volumes`, `environment`) sont **fusionnees** (les deux sont conservees).",
+          ],
+        },
+        {
+          type: "callout",
+          variant: "info",
+          title: "Difference entre include et extends",
+          text: "**`include`** importe des **fichiers Compose entiers** (services, reseaux, volumes). **`extends`** herite de la **configuration d'un service** dans un autre fichier. Les deux sont complementaires : `include` pour la modularite des stacks, `extends` pour la reutilisation de configuration.",
+        },
+        {
+          type: "usecase",
+          title: "Mono-repo avec 5 microservices",
+          text: "Dans un mono-repo, chaque microservice a son propre `compose.yaml` (build, ports, healthcheck). Le fichier racine utilise `include` pour importer la base de donnees et Redis partages (`./infra/compose.yaml`), et chaque service utilise `extends` pour heriter d'une config Node.js commune (`compose.base.yaml` : image, working_dir, volumes). Resultat : zero duplication, chaque equipe gere son fichier.",
+        },
+      ],
+    },
   ],
   exercises: [
     {
@@ -420,6 +497,31 @@ export const d08: Chapter = {
         { label: "Volume pgdata déclaré", pattern: "^volumes:[\\s\\S]*pgdata:" },
       ],
     },
+    {
+      id: "d8-ex9",
+      title: "Include et extends",
+      difficulty: "moyen",
+      language: "yaml",
+      prompt:
+        "Ecris un `compose.yaml` qui utilise **`include`** pour importer `./db/compose.yaml` et `./monitoring/compose.yaml`, puis definit un service **api** qui utilise **`extends`** pour heriter du service `node-base` dans le fichier `compose.base.yaml`. L'api doit ajouter la commande `[\"node\", \"server.js\"]`, publier le port 4000, et dependre du service `db`.",
+      hints: [
+        "`include` est une liste d'objets avec une cle `path`.",
+        "`extends` prend `file` (chemin du fichier) et `service` (nom du service parent).",
+        "Les proprietes ajoutees dans le service enfant completent celles du parent.",
+      ],
+      starter: "include:\n\nservices:\n  api:\n",
+      solution:
+        'include:\n  - path: ./db/compose.yaml\n  - path: ./monitoring/compose.yaml\n\nservices:\n  api:\n    extends:\n      file: compose.base.yaml\n      service: node-base\n    command: ["node", "server.js"]\n    ports:\n      - "4000:4000"\n    depends_on:\n      - db',
+      checks: [
+        { label: "Include db/compose.yaml", pattern: "path:\\s*\\./db/compose\\.yaml" },
+        { label: "Include monitoring/compose.yaml", pattern: "path:\\s*\\./monitoring/compose\\.yaml" },
+        { label: "Extends depuis compose.base.yaml", pattern: "file:\\s*compose\\.base\\.yaml" },
+        { label: "Service parent node-base", pattern: "service:\\s*node-base" },
+        { label: "Commande node server.js", pattern: "command:.*node.*server\\.js" },
+        { label: "Port 4000", pattern: "-\\s*[\"']?4000:4000[\"']?" },
+        { label: "Depend de db", pattern: "depends_on:[\\s\\S]*-\\s*db" },
+      ],
+    },
   ],
   project: {
     id: "d8-projet",
@@ -455,5 +557,6 @@ export const d08: Chapter = {
     "Les profiles (`profiles: [debug]`) permettent d'inclure conditionnellement des services (adminer, monitoring…).",
     "Le build dans Compose accepte context, dockerfile, target (multi-stage) et args.",
     "`docker compose watch` synchronise le code source et rebuild automatiquement — remplace avantageusement les bind mounts.",
+    "`include` importe des fichiers Compose entiers (ideal pour les mono-repos) ; `extends` herite de la config d'un service (DRY). Les deux sont complementaires.",
   ],
 };

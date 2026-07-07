@@ -11,6 +11,7 @@ import ContentRenderer from "@/components/ContentRenderer";
 import ExerciseCard from "@/components/ExerciseCard";
 import CompleteButton from "@/components/CompleteButton";
 import ChapterChat from "@/components/ChapterChat";
+import DockerExercisesWrapper from "@/components/DockerExercisesWrapper";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -111,40 +112,50 @@ export default async function ChapterPage({ params }: PageProps<"/cours/[course]
 
       <Separator className="my-10" />
 
-      {/* Exercices */}
-      <section id="exercices">
-        <h2 className="mb-2 flex items-center gap-2 text-2xl font-bold text-foreground">
-          <Sparkles className="size-6 text-primary" /> Exercices pour pratiquer
-        </h2>
-        <p className="text-muted-foreground">
-          Entraine-toi sur ces exercices. Chacun est accompagne de sa solution et de sa validation.
-        </p>
-        {c.exercises.map((ex) => (
-          <ExerciseCard
-            key={ex.id}
-            exercise={ex}
-            runner={course.runner}
-            language={course.editorLanguage}
-          />
-        ))}
-      </section>
-
-      {/* Gros projet */}
-      <section id="projet" className="mt-10">
-        <h2 className="mb-2 flex items-center gap-2 text-2xl font-bold text-foreground">
-          Projet du chapitre
-        </h2>
-        <p className="text-muted-foreground">
-          Un exercice plus consequent qui combine tout ce que tu viens d&apos;apprendre, avec sa
-          validation a faire passer.
-        </p>
-        <ExerciseCard
-          exercise={c.project}
-          big
+      {/* Exercices + Projet */}
+      {course.runner === "docker" ? (
+        <DockerExercisesWrapper
+          exercises={c.exercises}
+          project={c.project}
           runner={course.runner}
           language={course.editorLanguage}
         />
-      </section>
+      ) : (
+        <>
+          <section id="exercices">
+            <h2 className="mb-2 flex items-center gap-2 text-2xl font-bold text-foreground">
+              <Sparkles className="size-6 text-primary" /> Exercices pour pratiquer
+            </h2>
+            <p className="text-muted-foreground">
+              Entraine-toi sur ces exercices. Chacun est accompagne de sa solution et de sa validation.
+            </p>
+            {c.exercises.map((ex) => (
+              <ExerciseCard
+                key={ex.id}
+                exercise={ex}
+                runner={course.runner}
+                language={course.editorLanguage}
+              />
+            ))}
+          </section>
+
+          <section id="projet" className="mt-10">
+            <h2 className="mb-2 flex items-center gap-2 text-2xl font-bold text-foreground">
+              Projet du chapitre
+            </h2>
+            <p className="text-muted-foreground">
+              Un exercice plus consequent qui combine tout ce que tu viens d&apos;apprendre, avec sa
+              validation a faire passer.
+            </p>
+            <ExerciseCard
+              exercise={c.project}
+              big
+              runner={course.runner}
+              language={course.editorLanguage}
+            />
+          </section>
+        </>
+      )}
 
       <Separator className="my-10" />
 
