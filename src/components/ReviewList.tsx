@@ -4,9 +4,11 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Dumbbell, Lock, Check, Shuffle } from "lucide-react";
 import { reviewExercises } from "@/content/review";
-import { getChapter } from "@/content";
+import { dockerReviewExercises } from "@/content/review-docker";
+import { getCourse, defaultCourse, type Course } from "@/content/courses";
 import type { Difficulty, ReviewExercise } from "@/content/types";
 import { useProgress } from "@/lib/progress";
+import { DockerSessionProvider } from "@/lib/useDockerSession";
 import ExerciseCard from "./ExerciseCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,11 +23,25 @@ const diffStyle: Record<string, string> = {
   difficile: "border-red-400/40 bg-red-400/10 text-red-600 dark:text-red-400",
 };
 
+/** Jeux d'exercices de révision par cours. */
+const reviewSets: Record<string, ReviewExercise[]> = {
+  rust: reviewExercises,
+  docker: dockerReviewExercises,
+};
+
 function isUnlocked(ex: ReviewExercise, done: Set<string>): boolean {
   return ex.chapters.every((slug) => done.has(slug));
 }
 
-function LockedCard({ exercise, done }: { exercise: ReviewExercise; done: Set<string> }) {
+function LockedCard({
+  exercise,
+  done,
+  course,
+}: {
+  exercise: ReviewExercise;
+  done: Set<string>;
+  course: Course;
+}) {
   return (
     <div className="my-4 rounded-2xl border border-dashed border-border bg-muted/30 p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -49,12 +65,12 @@ function LockedCard({ exercise, done }: { exercise: ReviewExercise; done: Set<st
       </p>
       <div className="mt-2 flex flex-wrap gap-2">
         {exercise.chapters.map((slug) => {
-          const chapter = getChapter(slug);
+          const chapter = course.chapters.find((c) => c.slug === slug);
           const complete = done.has(slug);
           return (
             <Link
               key={slug}
-              href={`/cours/rust/${slug}`}
+              href={`/cours/${course.id}/${slug}`}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition",
                 complete
@@ -72,30 +88,38 @@ function LockedCard({ exercise, done }: { exercise: ReviewExercise; done: Set<st
   );
 }
 
-export default function ReviewList() {
+export default function ReviewList({ courseId = "rust" }: { courseId?: string }) {
+  const course = getCourse(courseId) ?? defaultCourse;
+  const exercises = useMemo(() => reviewSets[course.id] ?? [], [course.id]);
   const { done } = useProgress();
   const [difficulty, setDifficulty] = useState<Difficulty | "toutes">("toutes");
   const [showLocked, setShowLocked] = useState(true);
 
   const filtered = useMemo(
-    () =>
-      reviewExercises.filter(
-        (ex) => difficulty === "toutes" || ex.difficulty === difficulty,
-      ),
-    [difficulty],
+    () => exercises.filter((ex) => difficulty === "toutes" || ex.difficulty === difficulty),
+    [exercises, difficulty],
   );
 
   const unlocked = filtered.filter((ex) => isUnlocked(ex, done));
   const locked = filtered.filter((ex) => !isUnlocked(ex, done));
-  const unlockedTotal = reviewExercises.filter((ex) => isUnlocked(ex, done)).length;
-  const pct = Math.round((unlockedTotal / reviewExercises.length) * 100);
+  const unlockedTotal = exercises.filter((ex) => isUnlocked(ex, done)).length;
+  const pct = exercises.length ? Math.round((unlockedTotal / exercises.length) * 100) : 0;
+
+  const cards = unlocked.map((ex) => (
+    <ExerciseCard
+      key={ex.id}
+      exercise={ex}
+      runner={course.runner}
+      language={course.editorLanguage}
+    />
+  ));
 
   return (
     <div>
       <header className="mb-8">
         <div className="mb-3 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <Badge variant="secondary">
-            <Dumbbell className="size-3.5" /> Révision
+            <Dumbbell className="size-3.5" /> Révision {course.short}
           </Badge>
           <span className="inline-flex items-center gap-1">
             <Shuffle className="size-3.5" /> Chaque exercice mélange plusieurs chapitres
@@ -111,7 +135,7 @@ export default function ReviewList() {
           <div className="mb-1.5 flex justify-between text-sm">
             <span className="text-muted-foreground">Exercices débloqués</span>
             <span className="font-semibold text-foreground">
-              {unlockedTotal} / {reviewExercises.length}
+              {unlockedTotal} / {exercises.length}
             </span>
           </div>
           <Progress value={pct} className="h-2" />
@@ -147,9 +171,11 @@ export default function ReviewList() {
         </div>
       )}
 
-      {unlocked.map((ex) => (
-        <ExerciseCard key={ex.id} exercise={ex} />
-      ))}
+      {course.runner === "docker" ? (
+        <DockerSessionProvider>{cards}</DockerSessionProvider>
+      ) : (
+        cards
+      )}
 
       {showLocked && locked.length > 0 && (
         <>
@@ -157,7 +183,7 @@ export default function ReviewList() {
             Encore verrouillés ({locked.length})
           </h2>
           {locked.map((ex) => (
-            <LockedCard key={ex.id} exercise={ex} done={done} />
+            <LockedCard key={ex.id} exercise={ex} done={done} course={course} />
           ))}
         </>
       )}

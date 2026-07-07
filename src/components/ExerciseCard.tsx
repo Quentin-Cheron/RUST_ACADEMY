@@ -138,16 +138,18 @@ export default function ExerciseCard({
   // Runner « docker » : exécuter la commande/Dockerfile dans le conteneur partagé.
   const runDocker = async () => {
     if (!dockerSession) return;
-    if (!dockerSession.sessionId) {
-      await dockerSession.startSession();
-    }
     setDockerRunning(true);
     setDockerOutput(null);
     try {
+      const sid = dockerSession.sessionId ?? (await dockerSession.startSession());
+      if (!sid) {
+        setDockerOutput("Impossible de demarrer la session Docker. Docker est-il lance ?");
+        return;
+      }
       const isDockerfile = editorLang === "dockerfile";
       const output = isDockerfile
-        ? await dockerSession.execBuild(code)
-        : await dockerSession.execCommand(code.trim());
+        ? await dockerSession.execBuild(code, sid)
+        : await dockerSession.execCommand(code.trim(), sid);
       setDockerOutput(output);
     } catch (err) {
       setDockerOutput(err instanceof Error ? err.message : "Erreur Docker");

@@ -26,6 +26,14 @@ DOCKER_TERMINAL=true
 
 C'est tout. Pas besoin de configurer `DOCKER_HOST` : l'app se connecte automatiquement via le named pipe Windows.
 
+## Terminal Docker : un bac a sable isole
+
+Le terminal Docker des chapitres tourne dans un conteneur **Docker-in-Docker** (`docker:dind`, mode privilegie) : chaque session embarque **son propre demon Docker**.
+
+- Tout ce que tu crees pendant un exercice (`docker run`, `docker volume create`, `docker build`...) vit **a l'interieur** du bac a sable.
+- Quand la session se termine (fermeture, ou apres 30 min), **tout disparait** : un seul conteneur `docker:dind` apparait dans ton Docker Desktop, jamais une avalanche de conteneurs/volumes.
+- Au demarrage, les **images courantes** (`nginx`, `node:22`, `alpine`, `ubuntu:24.04`, `redis:7`...) sont pre-telechargees en arriere-plan dans le bac a sable, pour que `docker run --rm node:22 node --version` fonctionne immediatement sans dependre d'un exercice precedent. Les grosses images (`postgres:16`...) sont tirees a la volee au besoin (le bac a sable a acces au reseau).
+
 ## Ce qui se passe au premier lancement
 
 Au premier exercice Rust execute, l'app :
@@ -63,7 +71,7 @@ docker version
 
 # Pre-telecharger les images
 docker pull rust:slim      # exercices Rust
-docker pull docker:cli     # terminal Docker interactif
+docker pull docker:dind    # terminal Docker interactif (bac a sable isole)
 
 # Voir les conteneurs en cours
 docker ps

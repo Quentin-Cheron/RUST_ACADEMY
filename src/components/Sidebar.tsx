@@ -14,6 +14,9 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/s
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+/** Cours disposant d'une page « Réviser » (exercices transversaux). */
+const reviewCourses = new Set(["rust", "docker"]);
+
 function AccountFooter({ onNavigate }: { onNavigate?: () => void }) {
   const router = useRouter();
   const { data: session, isPending } = useSession();
@@ -97,6 +100,7 @@ function SidebarBody({ course, onNavigate }: { course: Course; onNavigate?: () =
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const doneInCourse = course.chapters.filter((c) => done.has(c.slug)).length;
   const pct = Math.round((doneInCourse / course.chapters.length) * 100);
+  const reviserHref = course.id === "rust" ? "/reviser" : `/cours/${course.id}/reviser`;
 
   const toggleExpand = (slug: string) => {
     setExpanded((prev) => {
@@ -132,23 +136,25 @@ function SidebarBody({ course, onNavigate }: { course: Course; onNavigate?: () =
           <Progress value={pct} className="h-2" />
         </div>
 
+        {reviewCourses.has(course.id) && (
+          <Link
+            href={reviserHref}
+            onClick={onNavigate}
+            className={cn(
+              "mt-3 flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition",
+              pathname === reviserHref
+                ? "border-primary/40 bg-sidebar-accent text-primary"
+                : "border-sidebar-border text-sidebar-foreground/80 hover:bg-sidebar-accent/60",
+            )}
+          >
+            <Dumbbell className="size-4 text-primary" />
+            Réviser
+            <span className="ml-auto text-xs text-muted-foreground">exercices mixés</span>
+          </Link>
+        )}
+
         {course.id === "rust" && (
           <>
-            <Link
-              href="/reviser"
-              onClick={onNavigate}
-              className={cn(
-                "mt-3 flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition",
-                pathname === "/reviser"
-                  ? "border-primary/40 bg-sidebar-accent text-primary"
-                  : "border-sidebar-border text-sidebar-foreground/80 hover:bg-sidebar-accent/60",
-              )}
-            >
-              <Dumbbell className="size-4 text-primary" />
-              Réviser
-              <span className="ml-auto text-xs text-muted-foreground">exercices mixés</span>
-            </Link>
-
             <Link
               href="/projets"
               onClick={onNavigate}

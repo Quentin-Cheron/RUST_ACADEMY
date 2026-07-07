@@ -7,9 +7,9 @@ interface DockerSession {
   sessionId: string | null;
   available: boolean;
   busy: boolean;
-  startSession: () => Promise<void>;
-  execCommand: (cmd: string) => Promise<string>;
-  execBuild: (dockerfile: string) => Promise<string>;
+  startSession: () => Promise<string | null>;
+  execCommand: (cmd: string, sessionIdOverride?: string) => Promise<string>;
+  execBuild: (dockerfile: string, sessionIdOverride?: string) => Promise<string>;
   stopSession: () => Promise<void>;
 }
 
@@ -21,8 +21,11 @@ export function DockerSessionProvider({ children }: { children: ReactNode }) {
   const [busy, setBusy] = useState(false);
   const startedRef = useRef(false);
 
-  const startSession = useCallback(async () => {
-    if (startedRef.current) return;
+  const sessionIdRef = useRef<string | null>(null);
+
+  const startSession = useCallback(async (): Promise<string | null> => {
+    if (sessionIdRef.current) return sessionIdRef.current;
+    if (startedRef.current) return null;
     startedRef.current = true;
     setBusy(true);
     try {
@@ -33,29 +36,33 @@ export function DockerSessionProvider({ children }: { children: ReactNode }) {
       });
       const data = await res.json();
       if (data.ok) {
+        sessionIdRef.current = data.sessionId;
         setSessionId(data.sessionId);
         setAvailable(true);
-      } else {
-        setAvailable(false);
-        startedRef.current = false;
+        return data.sessionId;
       }
+      setAvailable(false);
+      startedRef.current = false;
+      return null;
     } catch {
       setAvailable(false);
       startedRef.current = false;
+      return null;
     } finally {
       setBusy(false);
     }
   }, []);
 
   const execCommand = useCallback(
-    async (cmd: string): Promise<string> => {
-      if (!sessionId) throw new Error("Pas de session Docker");
+    async (cmd: string, sessionIdOverride?: string): Promise<string> => {
+      const sid = sessionIdOverride ?? sessionIdRef.current ?? sessionId;
+      if (!sid) throw new Error("Pas de session Docker");
       setBusy(true);
       try {
         const res = await fetch("/api/terminal", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "exec", sessionId, command: cmd }),
+          body: JSON.stringify({ action: "exec", sessionId: sid, command: cmd }),
         });
         const data = await res.json();
         if (data.ok) return data.output ?? "";
@@ -68,14 +75,15 @@ export function DockerSessionProvider({ children }: { children: ReactNode }) {
   );
 
   const execBuild = useCallback(
-    async (dockerfile: string): Promise<string> => {
-      if (!sessionId) throw new Error("Pas de session Docker");
+    async (dockerfile: string, sessionIdOverride?: string): Promise<string> => {
+      const sid = sessionIdOverride ?? sessionIdRef.current ?? sessionId;
+      if (!sid) throw new Error("Pas de session Docker");
       setBusy(true);
       try {
         const res = await fetch("/api/terminal", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "build", sessionId, dockerfile }),
+          body: JSON.stringify({ action: "build", sessionId: sid, dockerfile }),
         });
         const data = await res.json();
         if (data.ok) return data.output ?? "";
@@ -98,6 +106,7 @@ export function DockerSessionProvider({ children }: { children: ReactNode }) {
     } catch {
       /* ignore */
     }
+    sessionIdRef.current = null;
     setSessionId(null);
     startedRef.current = false;
   }, [sessionId]);

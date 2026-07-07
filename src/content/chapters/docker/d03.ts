@@ -101,14 +101,18 @@ export const d03: Chapter = {
       difficulty: "facile",
       language: "bash",
       prompt:
-        "Ouvre un shell interactif (`sh`) dans un conteneur en cours d'exécution nommé **api**.",
-      hints: ["`docker exec` agit sur un conteneur qui tourne.", "Le mode interactif, c'est `-it`."],
-      starter: "docker exec ",
-      solution: "docker exec -it api sh",
+        "En **deux commandes** (une par ligne) : (1) lance **nginx** en arrière-plan nommé **api**, (2) ouvre un shell interactif (`sh`) dedans avec `docker exec`.",
+      hints: [
+        "`docker run -d --name api nginx` démarre le conteneur.",
+        "`docker exec` agit sur un conteneur qui tourne ; le mode interactif, c'est `-it`.",
+      ],
+      starter: "# 1. Lancer\n\n# 2. Ouvrir un shell\n",
+      solution: "docker run -d --name api nginx\ndocker exec -it api sh",
       checks: [
+        { label: "Lance nginx en arrière-plan nommé api", pattern: "docker\\s+run\\s+-d\\s+--name\\s+api\\s+nginx" },
         { label: "Utilise docker exec", pattern: "docker\\s+exec" },
         { label: "Mode interactif (-it)", pattern: "-it\\b|-i\\s+-t" },
-        { label: "Cible le conteneur api", pattern: "\\bapi\\b" },
+        { label: "Cible le conteneur api", pattern: "exec\\s+-it\\s+api" },
         { label: "Lance un shell (sh)", pattern: "\\bsh\\b|\\bbash\\b" },
       ],
     },
@@ -118,14 +122,18 @@ export const d03: Chapter = {
       difficulty: "facile",
       language: "bash",
       prompt:
-        "Affiche les logs du conteneur **web** et **suis-les en temps réel** (comme `tail -f`).",
-      hints: ["L'option de suivi en continu est `-f`."],
-      starter: "docker logs ",
-      solution: "docker logs -f web",
+        "En **deux commandes** (une par ligne) : (1) lance **nginx** en arrière-plan nommé **web**, (2) affiche ses logs et **suis-les en temps réel** (comme `tail -f`).",
+      hints: [
+        "`docker run -d --name web nginx` démarre le serveur.",
+        "L'option de suivi en continu de `docker logs` est `-f`.",
+      ],
+      starter: "# 1. Lancer\n\n# 2. Suivre les logs\n",
+      solution: "docker run -d --name web nginx\ndocker logs -f web",
       checks: [
+        { label: "Lance nginx en arrière-plan nommé web", pattern: "docker\\s+run\\s+-d\\s+--name\\s+web\\s+nginx" },
         { label: "Utilise docker logs", pattern: "docker\\s+logs" },
-        { label: "Suit en temps réel (-f)", pattern: "(^|\\s)-f(\\s|$|ollow)" },
-        { label: "Cible le conteneur web", pattern: "\\bweb\\b" },
+        { label: "Suit en temps réel (-f)", pattern: "logs\\s+-f" },
+        { label: "Cible le conteneur web", pattern: "logs\\s+-f\\s+web" },
       ],
     },
     {
@@ -205,6 +213,47 @@ export const d03: Chapter = {
         { label: "Affiche l'utilisation disque", pattern: "docker\\s+system\\s+df" },
       ],
     },
+    {
+      id: "d3-ex7",
+      title: "nginx : du lancement à la suppression",
+      difficulty: "moyen",
+      language: "bash",
+      prompt:
+        "Cycle complet en **quatre commandes** (une par ligne) : (1) lance **nginx** en arrière-plan nommé **serveur** ; (2) affiche la version d'nginx **depuis le conteneur** avec `docker exec serveur nginx -v` ; (3) arrête proprement le conteneur ; (4) supprime-le.",
+      hints: [
+        "`docker run -d --name serveur nginx` puis `docker exec serveur nginx -v`.",
+        "`docker stop <nom>` (arrêt propre) puis `docker rm <nom>` (suppression).",
+      ],
+      starter: "# 1. Lancer\n\n# 2. Version d'nginx\n\n# 3. Arrêter\n\n# 4. Supprimer\n",
+      solution:
+        "docker run -d --name serveur nginx\ndocker exec serveur nginx -v\ndocker stop serveur\ndocker rm serveur",
+      checks: [
+        { label: "Lance nginx détaché nommé serveur", pattern: "docker\\s+run\\s+-d\\s+--name\\s+serveur\\s+nginx" },
+        { label: "Lit la version via docker exec", pattern: "docker\\s+exec\\s+serveur\\s+nginx\\s+-v" },
+        { label: "Arrêt propre du conteneur", pattern: "docker\\s+stop\\s+serveur" },
+        { label: "Suppression du conteneur", pattern: "docker\\s+rm\\s+serveur" },
+      ],
+    },
+    {
+      id: "d3-ex8",
+      title: "Redémarrer un service",
+      difficulty: "moyen",
+      language: "bash",
+      prompt:
+        "En **trois commandes** (une par ligne) : (1) lance **redis:7** en arrière-plan nommé **cache** ; (2) **redémarre-le** (stop + start en une commande) ; (3) force son arrêt et sa suppression en une seule commande.",
+      hints: [
+        "`docker restart <nom>` enchaîne stop puis start.",
+        "`docker rm -f <nom>` force l'arrêt et la suppression.",
+      ],
+      starter: "# 1. Lancer\n\n# 2. Redémarrer\n\n# 3. Nettoyer\n",
+      solution:
+        "docker run -d --name cache redis:7\ndocker restart cache\ndocker rm -f cache",
+      checks: [
+        { label: "Lance redis:7 détaché nommé cache", pattern: "docker\\s+run\\s+-d\\s+--name\\s+cache\\s+redis:7" },
+        { label: "Redémarre le conteneur (restart)", pattern: "docker\\s+restart\\s+cache" },
+        { label: "Force stop + suppression (rm -f cache)", pattern: "docker\\s+rm\\s+-f\\s+cache" },
+      ],
+    },
   ],
   project: {
     id: "d3-projet",
@@ -212,16 +261,17 @@ export const d03: Chapter = {
     difficulty: "moyen",
     language: "bash",
     prompt:
-      "Une API nommée `api` plante par intermittence. Écris la séquence de diagnostic (une commande par ligne) : (1) vérifier si le conteneur tourne encore (y compris s'il est arrêté), (2) afficher ses 200 dernières lignes de log, (3) ouvrir un shell `sh` dedans, (4) après diagnostic, le forcer à s'arrêter et le supprimer en une seule commande.",
+      "Mets en place puis diagnostique une API. Écris la séquence complète (une commande par ligne) : (1) lance **nginx** en arrière-plan nommé `api` (il jouera le rôle de l'API) ; (2) vérifie l'état de tous les conteneurs (y compris arrêtés) ; (3) affiche ses 200 dernières lignes de log ; (4) ouvre un shell `sh` dedans ; (5) après diagnostic, force son arrêt et sa suppression en une seule commande.",
     hints: [
-      "`docker ps -a` montre aussi les conteneurs arrêtés.",
-      "`--tail 200` limite le nombre de lignes.",
+      "`docker run -d --name api nginx` pour préparer le conteneur à diagnostiquer.",
+      "`docker ps -a` montre aussi les conteneurs arrêtés ; `--tail 200` limite les logs.",
       "`docker rm -f` force la suppression.",
     ],
-    starter: "# 1. État\n\n# 2. Logs récents\n\n# 3. Shell\n\n# 4. Nettoyage forcé\n",
+    starter: "# 1. Préparer l'API\n\n# 2. État\n\n# 3. Logs récents\n\n# 4. Shell\n\n# 5. Nettoyage forcé\n",
     solution:
-      "# 1. État\ndocker ps -a\n\n# 2. Logs récents\ndocker logs --tail 200 api\n\n# 3. Shell\ndocker exec -it api sh\n\n# 4. Nettoyage forcé\ndocker rm -f api",
+      "# 1. Préparer l'API\ndocker run -d --name api nginx\n\n# 2. État\ndocker ps -a\n\n# 3. Logs récents\ndocker logs --tail 200 api\n\n# 4. Shell\ndocker exec -it api sh\n\n# 5. Nettoyage forcé\ndocker rm -f api",
     checks: [
+      { label: "Prépare le conteneur api (nginx détaché)", pattern: "docker\\s+run\\s+-d\\s+--name\\s+api\\s+nginx" },
       { label: "Liste tous les conteneurs (docker ps -a)", pattern: "docker\\s+ps\\s+-a" },
       { label: "Logs limités à 200 lignes", pattern: "docker\\s+logs\\s+--tail\\s+200\\s+api" },
       { label: "Ouvre un shell dans api", pattern: "docker\\s+exec\\s+-it\\s+api\\s+(sh|bash)" },

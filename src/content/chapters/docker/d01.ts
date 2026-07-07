@@ -162,11 +162,15 @@ export const d01: Chapter = {
       difficulty: "facile",
       language: "bash",
       prompt:
-        "Un conteneur nommé `web` tourne encore. Écris les **deux commandes** (une par ligne) qui l'arrêtent puis le suppriment.",
-      hints: ["`docker stop <nom>` puis `docker rm <nom>`."],
-      starter: "\n",
-      solution: "docker stop web\ndocker rm web",
+        "Écris **trois commandes** (une par ligne) : (1) lance **nginx** en arrière-plan nommé `web`, (2) arrête-le, (3) supprime-le. Le conteneur ne doit rien laisser derrière lui.",
+      hints: [
+        "`docker run -d --name web nginx` pour le lancer.",
+        "`docker stop <nom>` puis `docker rm <nom>` pour nettoyer.",
+      ],
+      starter: "# 1. Lancer\n\n# 2. Arrêter\n\n# 3. Supprimer\n",
+      solution: "docker run -d --name web nginx\ndocker stop web\ndocker rm web",
       checks: [
+        { label: "Lance nginx en arrière-plan nommé web", pattern: "docker\\s+run\\s+-d\\s+--name\\s+web\\s+nginx" },
         { label: "Arrête le conteneur web", pattern: "docker\\s+stop\\s+web" },
         { label: "Supprime le conteneur web", pattern: "docker\\s+rm\\s+web" },
       ],
@@ -232,6 +236,26 @@ export const d01: Chapter = {
         { label: "Redis nommé cache, port 6380:6379", pattern: "--name\\s+cache[\\s\\S]*-p\\s+6380:6379|-p\\s+6380:6379[\\s\\S]*--name\\s+cache" },
         { label: "Image redis:7", pattern: "redis:7" },
         { label: "Liste les conteneurs (docker ps)", pattern: "docker\\s+ps" },
+      ],
+    },
+    {
+      id: "d1-ex7",
+      title: "Lancer puis nettoyer nginx",
+      difficulty: "moyen",
+      language: "bash",
+      prompt:
+        "Fais le cycle complet en **trois commandes** (une par ligne) : (1) lance **nginx** en arrière-plan nommé `web`, port **8080:80** ; (2) vérifie qu'il tourne avec `docker ps` ; (3) force son arrêt **et** sa suppression en une seule commande.",
+      hints: [
+        "`docker run -d --name web -p 8080:80 nginx` démarre le serveur.",
+        "`docker rm -f web` arrête ET supprime en une commande.",
+      ],
+      starter: "# 1. Lancer\n\n# 2. Vérifier\n\n# 3. Arrêter + supprimer\n",
+      solution:
+        "docker run -d --name web -p 8080:80 nginx\ndocker ps\ndocker rm -f web",
+      checks: [
+        { label: "Lance nginx détaché, nommé web, port 8080:80", pattern: "docker\\s+run\\s+-d\\s+--name\\s+web\\s+-p\\s+8080:80\\s+nginx" },
+        { label: "Vérifie avec docker ps", pattern: "docker\\s+ps" },
+        { label: "Force stop + suppression (rm -f web)", pattern: "docker\\s+rm\\s+-f\\s+web" },
       ],
     },
   ],

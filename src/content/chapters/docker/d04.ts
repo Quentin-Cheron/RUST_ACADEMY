@@ -187,6 +187,26 @@ export const d04: Chapter = {
         { label: "Commande npm run dev", pattern: "npm\\s+run\\s+dev" },
       ],
     },
+    {
+      id: "d4-ex6",
+      title: "Créer puis nettoyer un volume",
+      difficulty: "moyen",
+      language: "bash",
+      prompt:
+        "Cycle complet en **trois commandes** (une par ligne) : (1) crée un volume nommé **tmpdata** ; (2) vérifie qu'il apparaît avec `docker volume ls` ; (3) supprime-le. Ne laisse aucun volume orphelin.",
+      hints: [
+        "`docker volume create <nom>` puis `docker volume ls`.",
+        "`docker volume rm <nom>` supprime un volume qui n'est plus utilisé.",
+      ],
+      starter: "# 1. Créer\n\n# 2. Lister\n\n# 3. Supprimer\n",
+      solution:
+        "docker volume create tmpdata\ndocker volume ls\ndocker volume rm tmpdata",
+      checks: [
+        { label: "Crée le volume tmpdata", pattern: "docker\\s+volume\\s+create\\s+tmpdata" },
+        { label: "Liste les volumes", pattern: "docker\\s+volume\\s+ls" },
+        { label: "Supprime le volume tmpdata", pattern: "docker\\s+volume\\s+rm\\s+tmpdata" },
+      ],
+    },
   ],
   project: {
     id: "d4-projet",
