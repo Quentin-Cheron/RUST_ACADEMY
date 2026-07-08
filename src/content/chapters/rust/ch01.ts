@@ -122,7 +122,7 @@ export const ch01: Chapter = {
       title: "Vérifier son installation",
       difficulty: "facile",
       prompt:
-        "Écris une fonction `version_ok` qui reçoit une chaîne de version comme `\"1.83.0\"` et renvoie `true` si la version majeure est au moins 1. C'est une façon de simuler une vérification d'environnement.",
+        "Écris une fonction `version_ok` qui reçoit une chaîne de version comme `\"1.83.0\"` et renvoie `true` si la version majeure est au moins 1.\n\nExemples :\n- `version_ok(\"1.83.0\")` → `true`\n- `version_ok(\"2.0.0\")` → `true`\n- `version_ok(\"0.9.5\")` → `false`\n- `version_ok(\"abc\")` → `false`",
       hints: [
         "Regarde les méthodes `contains` et `starts_with` sur les chaînes.",
         "Une version valide contient un `.` — une entrée comme `\"abc\"` n'en a pas.",
@@ -139,7 +139,7 @@ export const ch01: Chapter = {
       title: "Message de bienvenue",
       difficulty: "facile",
       prompt:
-        "Écris une fonction `bienvenue` qui prend un prénom et renvoie une `String` du type `\"Bonjour, Alice ! Bienvenue chez Rust.\"`.",
+        "Écris une fonction `bienvenue` qui prend un prénom et renvoie une `String` de bienvenue.\n\nExemples :\n- `bienvenue(\"Alice\")` → `\"Bonjour, Alice ! Bienvenue chez Rust.\"`\n- `bienvenue(\"Bob\")` → `\"Bonjour, Bob ! Bienvenue chez Rust.\"`",
       hints: ["La macro `format!` construit une `String` comme `println!` mais sans l'afficher."],
       starter: "fn bienvenue(prenom: &str) -> String {\n    todo!()\n}",
       solution:
@@ -152,7 +152,7 @@ export const ch01: Chapter = {
       title: "Additionner deux entiers",
       difficulty: "facile",
       prompt:
-        "Le grand classique. Écris une fonction `additionner` qui renvoie la somme de deux `i32`. Objectif : t'habituer à la syntaxe des fonctions et au retour implicite.",
+        "Le grand classique. Écris une fonction `additionner` qui renvoie la somme de deux `i32`.\n\nExemples :\n- `additionner(2, 3)` → `5`\n- `additionner(-4, 10)` → `6`",
       hints: ["En Rust, la dernière expression sans `;` est la valeur de retour."],
       starter: "fn additionner(a: i32, b: i32) -> i32 {\n    todo!()\n}",
       solution: "fn additionner(a: i32, b: i32) -> i32 {\n    a + b\n}",
@@ -165,7 +165,7 @@ export const ch01: Chapter = {
     title: "Mini rapport d'environnement",
     difficulty: "moyen",
     prompt:
-      "Construis une fonction `rapport_env` qui reçoit un nom d'outil et sa version (`\"cargo\"`, `\"1.83.0\"`) et renvoie une ligne de rapport lisible. Elle doit signaler par un préfixe si la version est jugée obsolète (majeure < 1). Le but : combiner formatage de chaînes, découpage et conditions — les briques de base que tu réutiliseras partout.",
+      "Construis une fonction `rapport_env` qui reçoit un nom d'outil et sa version, et renvoie une ligne de rapport avec un préfixe `[OK]` ou `[!!]` selon que la version majeure est >= 1 ou non.\n\nExemples :\n- `rapport_env(\"cargo\", \"1.83.0\")` → `\"[OK] cargo 1.83.0\"`\n- `rapport_env(\"vieux\", \"0.2.0\")` → `\"[!!] vieux 0.2.0\"`\n- `rapport_env(\"mystere\", \"inconnue\")` → `\"[!!] mystere inconnue\"`",
     hints: [
       "Réutilise l'idée de `version_ok` du premier exercice (`contains`, `starts_with`).",
       "Un `if/else` suffit pour choisir entre `\"[OK]\"` et `\"[!!]\"`.",
