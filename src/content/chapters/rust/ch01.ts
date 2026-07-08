@@ -101,7 +101,7 @@ export const ch01: Chapter = {
           type: "code",
           language: "toml",
           filename: "Cargo.toml",
-          code: '[package]\nname = "hello_cargo"\nversion = "0.1.0"\nedition = "2021"\n\n[dependencies]\n# on ajoutera nos crates ici, ex: rand = "0.8"',
+          code: '[package]\nname = "hello_cargo"\nversion = "0.1.0"\nedition = "2021"\n\n[dependencies]\n# on ajoutera nos crates ici, ex: rand = "0.10"',
         },
         {
           type: "usecase",

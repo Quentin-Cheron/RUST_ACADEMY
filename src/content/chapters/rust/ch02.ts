@@ -60,7 +60,7 @@ export const ch02: Chapter = {
           type: "code",
           language: "toml",
           filename: "Cargo.toml",
-          code: '[package]\nname = "jeu_plus_ou_moins"\nversion = "0.1.0"\nedition = "2021"\n\n[dependencies]\nrand = "0.8"',
+          code: '[package]\nname = "jeu_plus_ou_moins"\nversion = "0.1.0"\nedition = "2021"\n\n[dependencies]\nrand = "0.10"',
           caption: "Cargo télécharge et compile la crate au prochain `cargo build`.",
         },
         {
@@ -70,13 +70,13 @@ export const ch02: Chapter = {
         {
           type: "code",
           language: "rust",
-          code: 'use rand::Rng;\n\nfn main() {\n    let nombre_secret = rand::thread_rng().gen_range(1..=100);\n    println!("Le nombre secret est {nombre_secret}");\n}',
+          code: 'use rand::RngExt;\n\nfn main() {\n    let nombre_secret = rand::rng().random_range(1..=100);\n    println!("Le nombre secret est {nombre_secret}");\n}',
         },
         {
           type: "list",
           items: [
-            "`use rand::Rng;` importe le **trait** qui définit la méthode `gen_range` — sans cet import, la méthode n'est pas visible.",
-            "`rand::thread_rng()` renvoie un générateur local au thread courant, prêt à l'emploi.",
+            "`use rand::RngExt;` importe le **trait** qui définit la méthode `random_range` — sans cet import, la méthode n'est pas visible.",
+            "`rand::rng()` renvoie un générateur local au thread courant, prêt à l'emploi.",
             "`1..=100` est un intervalle **inclusif** : il peut produire 1, 100, ou n'importe quel entier entre les deux.",
           ],
         },
@@ -88,7 +88,7 @@ export const ch02: Chapter = {
         {
           type: "callout",
           variant: "warning",
-          text: "Le numéro de version compte : `rand = \"0.8\"` fixe une plage compatible avec 0.8.x. Une montée vers `0.9` peut changer l'API (c'est déjà arrivé pour `gen_range`). Vérifie toujours la documentation de la version installée.",
+          text: "Le numéro de version compte : `rand = \"0.10\"` fixe une plage compatible avec 0.10.x. Entre deux versions majeures (ex. 0.8 → 0.10), l'API peut changer (`thread_rng` renommé en `rng`, `gen_range` renommé en `random_range`). Vérifie toujours la documentation de la version installée.",
         },
       ],
     },
@@ -103,15 +103,16 @@ export const ch02: Chapter = {
         {
           type: "code",
           language: "rust",
-          code: 'let saisie = saisie.trim();\n\nlet essai: u32 = match saisie.parse() {\n    Ok(nombre) => nombre,\n    Err(_) => {\n        println!("Merci d\'entrer un nombre valide !");\n        continue; // retourne au début de la boucle (voir plus bas)\n    }\n};',
+          code: 'let essai: u32 = match saisie.trim().parse() {\n    Ok(nombre) => nombre,\n    Err(_) => {\n        println!("Merci d\'entrer un nombre valide !");\n        continue; // retourne au début de la boucle\n    }\n};',
+          caption: "Ce code vit à l'intérieur de la boucle `loop` du jeu (section suivante). Le `continue` n'a de sens que dans une boucle.",
         },
         {
           type: "list",
           items: [
             "`.trim()` supprime les espaces et le `\\n` de fin de ligne — sans lui, `\"42\\n\".parse::<u32>()` échoue.",
+            "On chaîne `.trim().parse()` en une seule expression : pas besoin de variable intermédiaire.",
             "`.parse()` renvoie un `Result<u32, _>` : `Ok(nombre)` si la conversion réussit, `Err(_)` sinon (texte non numérique, nombre négatif pour un `u32`, etc.).",
             "Le `match` gère les deux cas explicitement : impossible d'oublier l'erreur, contrairement à un `unwrap()` qui ferait planter le programme.",
-            "Réutiliser le nom `saisie` pour la version nettoyée (*shadowing*) est un idiome courant en Rust : pas besoin d'inventer `saisie_nettoyee`.",
           ],
         },
         {
@@ -158,7 +159,7 @@ export const ch02: Chapter = {
           type: "code",
           language: "rust",
           filename: "main.rs",
-          code: 'use rand::Rng;\nuse std::cmp::Ordering;\nuse std::io;\n\nfn main() {\n    println!("Devine le nombre !");\n\n    let nombre_secret = rand::thread_rng().gen_range(1..=100);\n\n    loop {\n        println!("Entre ton essai :");\n\n        let mut saisie = String::new();\n        io::stdin()\n            .read_line(&mut saisie)\n            .expect("Échec de la lecture de la ligne");\n\n        let essai: u32 = match saisie.trim().parse() {\n            Ok(nombre) => nombre,\n            Err(_) => {\n                println!("Merci d\'entrer un nombre valide !");\n                continue;\n            }\n        };\n\n        println!("Tu as tapé : {essai}");\n\n        match essai.cmp(&nombre_secret) {\n            Ordering::Less => println!("Trop petit !"),\n            Ordering::Greater => println!("Trop grand !"),\n            Ordering::Equal => {\n                println!("Gagné !");\n                break;\n            }\n        }\n    }\n}',
+          code: 'use rand::RngExt;\nuse std::cmp::Ordering;\nuse std::io;\n\nfn main() {\n    println!("Devine le nombre !");\n\n    let nombre_secret = rand::rng().random_range(1..=100);\n\n    loop {\n        println!("Entre ton essai :");\n\n        let mut saisie = String::new();\n        io::stdin()\n            .read_line(&mut saisie)\n            .expect("Échec de la lecture de la ligne");\n\n        let essai: u32 = match saisie.trim().parse() {\n            Ok(nombre) => nombre,\n            Err(_) => {\n                println!("Merci d\'entrer un nombre valide !");\n                continue;\n            }\n        };\n\n        println!("Tu as tapé : {essai}");\n\n        match essai.cmp(&nombre_secret) {\n            Ordering::Less => println!("Trop petit !"),\n            Ordering::Greater => println!("Trop grand !"),\n            Ordering::Equal => {\n                println!("Gagné !");\n                break;\n            }\n        }\n    }\n}',
           caption: "Le programme complet : lecture, parsing, comparaison, boucle.",
         },
         {
@@ -218,16 +219,16 @@ export const ch02: Chapter = {
       title: "Générer un nombre dans un intervalle",
       difficulty: "difficile",
       prompt:
-        "Écris une fonction `nombre_aleatoire(min: u32, max: u32) -> u32` (bornes incluses) qui utilise `rand::thread_rng().gen_range(...)`. Comme le résultat est imprévisible, les tests ne vérifient pas une valeur précise mais que le résultat reste **toujours** dans l'intervalle demandé, même en répétant l'appel de nombreuses fois.",
+        "Écris une fonction `nombre_aleatoire(min: u32, max: u32) -> u32` (bornes incluses) qui utilise `rand::rng().random_range(...)`. Comme le résultat est imprévisible, les tests ne vérifient pas une valeur précise mais que le résultat reste **toujours** dans l'intervalle demandé, même en répétant l'appel de nombreuses fois.",
       hints: [
-        "Ajoute `rand = \"0.8\"` dans `[dependencies]` du `Cargo.toml`.",
+        "Ajoute `rand = \"0.10\"` dans `[dependencies]` du `Cargo.toml`.",
         "`min..=max` est un intervalle inclusif, exactement ce qu'il faut ici.",
         "Dans les tests, appelle la fonction en boucle (par exemple 1000 fois) pour couvrir large.",
       ],
       starter:
-        "use rand::Rng;\n\nfn nombre_aleatoire(min: u32, max: u32) -> u32 {\n    todo!()\n}",
+        "use rand::RngExt;\n\nfn nombre_aleatoire(min: u32, max: u32) -> u32 {\n    todo!()\n}",
       solution:
-        "use rand::Rng;\n\nfn nombre_aleatoire(min: u32, max: u32) -> u32 {\n    rand::thread_rng().gen_range(min..=max)\n}",
+        "use rand::RngExt;\n\nfn nombre_aleatoire(min: u32, max: u32) -> u32 {\n    rand::rng().random_range(min..=max)\n}",
       tests:
         '#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn reste_dans_intervalle_etroit() {\n        for _ in 0..1000 {\n            let n = nombre_aleatoire(1, 6);\n            assert!(n >= 1 && n <= 6);\n        }\n    }\n\n    #[test]\n    fn reste_dans_intervalle_large() {\n        for _ in 0..1000 {\n            let n = nombre_aleatoire(1, 100);\n            assert!(n >= 1 && n <= 100);\n        }\n    }\n\n    #[test]\n    fn intervalle_reduit_a_une_seule_valeur() {\n        assert_eq!(nombre_aleatoire(7, 7), 7);\n    }\n}',
     },
@@ -245,15 +246,15 @@ export const ch02: Chapter = {
       "Le `main()` n'est pas testé automatiquement (il attend une vraie saisie clavier) : c'est `evaluer_essai` et `jouer_partie` qui portent toute la logique testable.",
     ],
     starter:
-      "use rand::Rng;\nuse std::cmp::Ordering;\nuse std::io;\n\n/// Renvoie \"trop petit\", \"trop grand\" ou \"gagné\" selon l'essai.\nfn evaluer_essai(secret: u32, essai: u32) -> &'static str {\n    todo!()\n}\n\n/// Simule une partie à partir d'une liste d'essais.\n/// Renvoie le numéro (à partir de 1) de l'essai gagnant, ou None.\nfn jouer_partie(secret: u32, essais: &[u32]) -> Option<usize> {\n    todo!()\n}\n\nfn main() {\n    println!(\"Devine le nombre entre 1 et 100 !\");\n    let secret = rand::thread_rng().gen_range(1..=100);\n\n    loop {\n        let mut saisie = String::new();\n        io::stdin()\n            .read_line(&mut saisie)\n            .expect(\"Échec de la lecture de la ligne\");\n\n        let essai: u32 = match saisie.trim().parse() {\n            Ok(n) => n,\n            Err(_) => {\n                println!(\"Merci d'entrer un nombre valide !\");\n                continue;\n            }\n        };\n\n        match evaluer_essai(secret, essai) {\n            \"gagné\" => {\n                println!(\"Gagné !\");\n                break;\n            }\n            message => println!(\"{message}\"),\n        }\n    }\n}",
+      "use rand::RngExt;\nuse std::cmp::Ordering;\nuse std::io;\n\n/// Renvoie \"trop petit\", \"trop grand\" ou \"gagné\" selon l'essai.\nfn evaluer_essai(secret: u32, essai: u32) -> &'static str {\n    todo!()\n}\n\n/// Simule une partie à partir d'une liste d'essais.\n/// Renvoie le numéro (à partir de 1) de l'essai gagnant, ou None.\nfn jouer_partie(secret: u32, essais: &[u32]) -> Option<usize> {\n    todo!()\n}\n\nfn main() {\n    println!(\"Devine le nombre entre 1 et 100 !\");\n    let secret = rand::rng().random_range(1..=100);\n\n    loop {\n        let mut saisie = String::new();\n        io::stdin()\n            .read_line(&mut saisie)\n            .expect(\"Échec de la lecture de la ligne\");\n\n        let essai: u32 = match saisie.trim().parse() {\n            Ok(n) => n,\n            Err(_) => {\n                println!(\"Merci d'entrer un nombre valide !\");\n                continue;\n            }\n        };\n\n        match evaluer_essai(secret, essai) {\n            \"gagné\" => {\n                println!(\"Gagné !\");\n                break;\n            }\n            message => println!(\"{message}\"),\n        }\n    }\n}",
     solution:
-      "use rand::Rng;\nuse std::cmp::Ordering;\nuse std::io;\n\n/// Renvoie \"trop petit\", \"trop grand\" ou \"gagné\" selon l'essai.\nfn evaluer_essai(secret: u32, essai: u32) -> &'static str {\n    match essai.cmp(&secret) {\n        Ordering::Less => \"trop petit\",\n        Ordering::Greater => \"trop grand\",\n        Ordering::Equal => \"gagné\",\n    }\n}\n\n/// Simule une partie à partir d'une liste d'essais déjà connus.\n/// Renvoie le numéro (à partir de 1) de l'essai gagnant, ou None si aucun ne gagne.\nfn jouer_partie(secret: u32, essais: &[u32]) -> Option<usize> {\n    for (index, &essai) in essais.iter().enumerate() {\n        if evaluer_essai(secret, essai) == \"gagné\" {\n            return Some(index + 1);\n        }\n    }\n    None\n}\n\nfn main() {\n    println!(\"Devine le nombre entre 1 et 100 !\");\n    let secret = rand::thread_rng().gen_range(1..=100);\n\n    loop {\n        let mut saisie = String::new();\n        io::stdin()\n            .read_line(&mut saisie)\n            .expect(\"Échec de la lecture de la ligne\");\n\n        let essai: u32 = match saisie.trim().parse() {\n            Ok(n) => n,\n            Err(_) => {\n                println!(\"Merci d'entrer un nombre valide !\");\n                continue;\n            }\n        };\n\n        match evaluer_essai(secret, essai) {\n            \"gagné\" => {\n                println!(\"Gagné !\");\n                break;\n            }\n            message => println!(\"{message}\"),\n        }\n    }\n}",
+      "use rand::RngExt;\nuse std::cmp::Ordering;\nuse std::io;\n\n/// Renvoie \"trop petit\", \"trop grand\" ou \"gagné\" selon l'essai.\nfn evaluer_essai(secret: u32, essai: u32) -> &'static str {\n    match essai.cmp(&secret) {\n        Ordering::Less => \"trop petit\",\n        Ordering::Greater => \"trop grand\",\n        Ordering::Equal => \"gagné\",\n    }\n}\n\n/// Simule une partie à partir d'une liste d'essais déjà connus.\n/// Renvoie le numéro (à partir de 1) de l'essai gagnant, ou None si aucun ne gagne.\nfn jouer_partie(secret: u32, essais: &[u32]) -> Option<usize> {\n    for (index, &essai) in essais.iter().enumerate() {\n        if evaluer_essai(secret, essai) == \"gagné\" {\n            return Some(index + 1);\n        }\n    }\n    None\n}\n\nfn main() {\n    println!(\"Devine le nombre entre 1 et 100 !\");\n    let secret = rand::rng().random_range(1..=100);\n\n    loop {\n        let mut saisie = String::new();\n        io::stdin()\n            .read_line(&mut saisie)\n            .expect(\"Échec de la lecture de la ligne\");\n\n        let essai: u32 = match saisie.trim().parse() {\n            Ok(n) => n,\n            Err(_) => {\n                println!(\"Merci d'entrer un nombre valide !\");\n                continue;\n            }\n        };\n\n        match evaluer_essai(secret, essai) {\n            \"gagné\" => {\n                println!(\"Gagné !\");\n                break;\n            }\n            message => println!(\"{message}\"),\n        }\n    }\n}",
     tests:
       '#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn evaluer_essai_trop_petit() {\n        assert_eq!(evaluer_essai(50, 10), "trop petit");\n    }\n\n    #[test]\n    fn evaluer_essai_trop_grand() {\n        assert_eq!(evaluer_essai(50, 90), "trop grand");\n    }\n\n    #[test]\n    fn evaluer_essai_gagne() {\n        assert_eq!(evaluer_essai(50, 50), "gagné");\n    }\n\n    #[test]\n    fn jouer_partie_trouve_le_bon_essai() {\n        assert_eq!(jouer_partie(50, &[10, 90, 50, 20]), Some(3));\n    }\n\n    #[test]\n    fn jouer_partie_gagne_du_premier_coup() {\n        assert_eq!(jouer_partie(7, &[7]), Some(1));\n    }\n\n    #[test]\n    fn jouer_partie_ne_trouve_jamais() {\n        assert_eq!(jouer_partie(50, &[10, 90, 20]), None);\n    }\n\n    #[test]\n    fn jouer_partie_avec_liste_vide() {\n        assert_eq!(jouer_partie(50, &[]), None);\n    }\n}',
   },
   keyTakeaways: [
     "`std::io::stdin().read_line(&mut s)` lit une ligne clavier dans une `String` mutable.",
-    "Les dépendances externes se déclarent dans `Cargo.toml` ; `rand::thread_rng().gen_range(1..=100)` génère un entier aléatoire inclusif.",
+    "Les dépendances externes se déclarent dans `Cargo.toml` ; `rand::rng().random_range(1..=100)` génère un entier aléatoire inclusif.",
     "`.trim().parse::<T>()` convertit du texte en nombre et renvoie un `Result` à gérer (avec `match`, pas `unwrap` en contexte interactif).",
     "`std::cmp::Ordering` (`Less`/`Greater`/`Equal`) combiné à `match` structure proprement une comparaison.",
     "`loop` répète une action jusqu'à un `break` ; `continue` passe directement au tour suivant.",
