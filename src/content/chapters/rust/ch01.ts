@@ -124,13 +124,13 @@ export const ch01: Chapter = {
       prompt:
         "Écris une fonction `version_ok` qui reçoit une chaîne de version comme `\"1.83.0\"` et renvoie `true` si la version majeure est au moins 1. C'est une façon de simuler une vérification d'environnement.",
       hints: [
-        "Utilise `split('.')` pour séparer les nombres.",
-        "`parse::<u32>()` convertit une chaîne en entier.",
+        "Regarde les méthodes `contains` et `starts_with` sur les chaînes.",
+        "Une version valide contient un `.` — une entrée comme `\"abc\"` n'en a pas.",
       ],
       starter:
         "fn version_ok(version: &str) -> bool {\n    // À toi de jouer\n    todo!()\n}",
       solution:
-        'fn version_ok(version: &str) -> bool {\n    // On prend le premier segment avant le point.\n    match version.split(\'.\').next() {\n        Some(major) => major.parse::<u32>().map(|n| n >= 1).unwrap_or(false),\n        None => false,\n    }\n}',
+        'fn version_ok(version: &str) -> bool {\n    // Une version valide contient un point,\n    // et la majeure >= 1 signifie qu\'elle ne commence pas par "0."\n    version.contains(\'.\') && !version.starts_with("0.")\n}',
       tests:
         '#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn accepte_version_recente() {\n        assert!(version_ok("1.83.0"));\n        assert!(version_ok("2.0.0"));\n    }\n\n    #[test]\n    fn refuse_version_zero() {\n        assert!(!version_ok("0.9.5"));\n    }\n\n    #[test]\n    fn refuse_entree_invalide() {\n        assert!(!version_ok("abc"));\n    }\n}',
     },
@@ -167,14 +167,14 @@ export const ch01: Chapter = {
     prompt:
       "Construis une fonction `rapport_env` qui reçoit un nom d'outil et sa version (`\"cargo\"`, `\"1.83.0\"`) et renvoie une ligne de rapport lisible. Elle doit signaler par un préfixe si la version est jugée obsolète (majeure < 1). Le but : combiner formatage de chaînes, découpage et conditions — les briques de base que tu réutiliseras partout.",
     hints: [
-      "Réutilise l'idée de `version_ok` du premier exercice.",
-      "Retourne quelque chose comme `\"[OK] cargo 1.83.0\"` ou `\"[!!] vieux 0.2.0\"`.",
+      "Réutilise l'idée de `version_ok` du premier exercice (`contains`, `starts_with`).",
+      "Un `if/else` suffit pour choisir entre `\"[OK]\"` et `\"[!!]\"`.",
       "Pense à `format!` pour assembler la ligne.",
     ],
     starter:
       "/// Renvoie une ligne de rapport pour un outil donné.\n/// Préfixe `[OK]` si la version majeure >= 1, sinon `[!!]`.\nfn rapport_env(outil: &str, version: &str) -> String {\n    todo!()\n}\n\nfn main() {\n    println!(\"{}\", rapport_env(\"cargo\", \"1.83.0\"));\n    println!(\"{}\", rapport_env(\"vieux\", \"0.2.0\"));\n}",
     solution:
-      'fn version_majeure(version: &str) -> u32 {\n    version\n        .split(\'.\')\n        .next()\n        .and_then(|s| s.parse::<u32>().ok())\n        .unwrap_or(0)\n}\n\nfn rapport_env(outil: &str, version: &str) -> String {\n    let prefixe = if version_majeure(version) >= 1 { "[OK]" } else { "[!!]" };\n    format!("{prefixe} {outil} {version}")\n}\n\nfn main() {\n    println!("{}", rapport_env("cargo", "1.83.0"));\n    println!("{}", rapport_env("vieux", "0.2.0"));\n}',
+      'fn rapport_env(outil: &str, version: &str) -> String {\n    let ok = version.contains(\'.\') && !version.starts_with("0.");\n    let prefixe = if ok { "[OK]" } else { "[!!]" };\n    format!("{prefixe} {outil} {version}")\n}\n\nfn main() {\n    println!("{}", rapport_env("cargo", "1.83.0"));\n    println!("{}", rapport_env("vieux", "0.2.0"));\n}',
     tests:
       '#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn version_ok_est_prefixee_ok() {\n        assert_eq!(rapport_env("cargo", "1.83.0"), "[OK] cargo 1.83.0");\n    }\n\n    #[test]\n    fn version_obsolete_est_signalee() {\n        assert_eq!(rapport_env("vieux", "0.2.0"), "[!!] vieux 0.2.0");\n    }\n\n    #[test]\n    fn version_invalide_traitee_comme_obsolete() {\n        assert_eq!(rapport_env("mystere", "inconnue"), "[!!] mystere inconnue");\n    }\n}',
   },
